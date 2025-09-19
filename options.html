@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Refinement Assistant - Settings</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.success {
+            background: #28a745;
+        }
+
+        .status-indicator.error {
+            background: #dc3545;
+        }
+
+        .status-indicator.warning {
+            background: #ffc107;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Chat Refinement Assistant</h1>
+            <p>Configure your AI-powered reply refinement settings</p>
+        </div>
+
+        <div id="alerts"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>API Configuration</h2>
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label for="apiKey" class="form-label">
+                        Google Gemini API Key
+                        <span class="status-indicator" id="apiKeyStatus"></span>
+                    </label>
+                    <input type="password" id="apiKey" class="form-input" placeholder="Enter your Gemini API key">
+                    <div class="form-help">
+                        Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button id="saveSettings" class="btn btn-primary">Save Settings</button>
+                    <button id="testConnection" class="btn btn-secondary">Test Connection</button>
+                    <button id="clearSettings" class="btn btn-secondary">Clear Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>How to Use</h2>
+            </div>
+            <div class="card-content">
+                <ol>
+                    <li>Set your Gemini API key above</li>
+                    <li>Navigate to any chat application (WhatsApp Web, Gmail, LinkedIn, etc.)</li>
+                    <li>Click in a text input field and type your message</li>
+                    <li>Use <strong>Ctrl+Y</strong> to preview a refined version</li>
+                    <li>Use <strong>Ctrl+U</strong> to directly replace your text with the refined version</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Features</h2>
+            </div>
+            <div class="card-content">
+                <ul class="feature-list">
+                    <li>Works on all major chat platforms</li>
+                    <li>Context-aware message refinement</li>
+                    <li>No data stored locally or on servers</li>
+                    <li>Privacy-focused (uses your own API key)</li>
+                    <li>Keyboard shortcuts for quick access</li>
+                    <li>Real-time conversation analysis</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Privacy & Security</h2>
+            </div>
+            <div class="card-content">
+                <p>This extension prioritizes your privacy:</p>
+                <ul>
+                    <li><strong>No data storage:</strong> Your messages are only sent to Google's Gemini API</li>
+                    <li><strong>Your API key:</strong> You control your own API key and usage</li>
+                    <li><strong>No tracking:</strong> No analytics or user tracking</li>
+                    <li><strong>Local processing:</strong> All text extraction happens in your browser</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Troubleshooting</h2>
+            </div>
+            <div class="card-content">
+                <h3>Common Issues:</h3>
+                <ul>
+                    <li><strong>Extension not working:</strong> Make sure you're on a supported website and have clicked in a text field</li>
+                    <li><strong>API errors:</strong> Check that your API key is correct and has sufficient quota</li>
+                    <li><strong>Keyboard shortcuts not working:</strong> Try refreshing the page or checking for conflicts with other extensions</li>
+                    <li><strong>No conversation context:</strong> The extension works best on pages with clear message structures</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Chat Refinement Assistant v1.0.0 | Made with ❤️ for better conversations</p>
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
