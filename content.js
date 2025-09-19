@@ -30,12 +30,12 @@ class ChatRefinementExtension {
   }
 
   handleKeyDown(event) {
-    // Check for Ctrl+J (preview) or Ctrl+K (replace)
-    if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey) {
-      if (event.key === 'j' || event.key === 'J') {
+    // Check for Ctrl+Shift+P (preview) or Ctrl+Shift+L (replace)
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey) {
+      if (event.key === 'p' || event.key === 'P') {
         event.preventDefault();
         this.handleRefinePreview();
-      } else if (event.key === 'k' || event.key === 'K') {
+      } else if (event.key === 'l' || event.key === 'L') {
         event.preventDefault();
         this.handleRefineReplace();
       }
