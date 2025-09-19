@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Refinement Extension Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .chat-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+        .message.other {
+            background: #e3f2fd;
+            margin-right: auto;
+        }
+        .message.me {
+            background: #f3e5f5;
+            margin-left: auto;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .input-area button {
+            padding: 12px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .instructions {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        .instructions ol {
+            margin: 10px 0;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat Refinement Assistant - Test Page</h1>
+    
+    <div class="instructions">
+        <h3>How to Test the Extension:</h3>
+        <ol>
+            <li>Make sure the Chat Refinement Assistant extension is installed and enabled</li>
+            <li>Configure your Gemini API key in the extension settings</li>
+            <li>Type a message in the input field below</li>
+            <li>Press <strong>Ctrl+Y</strong> to preview a refined version</li>
+            <li>Press <strong>Ctrl+U</strong> to replace with refined version</li>
+        </ol>
+    </div>
+
+    <div class="chat-container">
+        <h3>Sample Conversation</h3>
+        
+        <div class="message other">
+            <strong>Alice:</strong> Hey! How was your day? I heard you had that big presentation today.
+        </div>
+        
+        <div class="message me">
+            <strong>You:</strong> It went okay, thanks for asking! The presentation was a bit nerve-wracking but I think it went well overall.
+        </div>
+        
+        <div class="message other">
+            <strong>Alice:</strong> That's great to hear! I'm sure you did amazing. What was the presentation about?
+        </div>
+        
+        <div class="message me">
+            <strong>You:</strong> It was about our new product launch strategy. We covered market analysis, target demographics, and our go-to-market plan.
+        </div>
+        
+        <div class="message other">
+            <strong>Alice:</strong> Sounds interesting! I'd love to hear more about it sometime. Are you free for coffee this weekend?
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type your reply here and press Ctrl+Y or Ctrl+U to test the extension...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <h3>Test Different Input Types</h3>
+        
+        <div style="margin-bottom: 15px;">
+            <label for="textarea">Textarea:</label><br>
+            <textarea id="textarea" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Type here and test Ctrl+Y or Ctrl+U"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label for="contenteditable">Content Editable:</label><br>
+            <div id="contenteditable" contenteditable="true" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 50px;" placeholder="Type here and test Ctrl+Y or Ctrl+U"></div>
+        </div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (message) {
+                // Simulate sending message
+                console.log('Message sent:', message);
+                input.value = '';
+                alert('Message sent! (This is just a test page)');
+            }
+        }
+
+        // Allow Enter key to send message
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
