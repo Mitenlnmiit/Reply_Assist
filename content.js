@@ -10,6 +10,12 @@ class ChatRefinementExtension {
   }
 
   init() {
+    // Check if Chrome runtime is available
+    if (typeof chrome === 'undefined' || !chrome.runtime) {
+      console.error('Chrome runtime not available');
+      return;
+    }
+
     // Listen for keyboard shortcuts
     document.addEventListener('keydown', this.handleKeyDown.bind(this));
     
@@ -60,14 +66,20 @@ class ChatRefinementExtension {
       const conversationHistory = this.extractConversationHistory();
       
       // Send to background script for API call
-      chrome.runtime.sendMessage({
-        action: 'refineText',
-        data: {
-          draftText: draftText,
-          conversationHistory: conversationHistory,
-          action: 'preview' // Preview mode
-        }
-      });
+      try {
+        chrome.runtime.sendMessage({
+          action: 'refineText',
+          data: {
+            draftText: draftText,
+            conversationHistory: conversationHistory,
+            action: 'preview' // Preview mode
+          }
+        });
+      } catch (error) {
+        console.error('Error sending message to background:', error);
+        this.showNotification('Extension communication error. Please reload the page.', 'error');
+        this.isProcessing = false;
+      }
 
       this.showNotification('Refining your message...', 'info');
     } catch (error) {
@@ -101,14 +113,20 @@ class ChatRefinementExtension {
       const conversationHistory = this.extractConversationHistory();
       
       // Send to background script for API call
-      chrome.runtime.sendMessage({
-        action: 'refineText',
-        data: {
-          draftText: draftText,
-          conversationHistory: conversationHistory,
-          action: 'replace' // Direct replace mode
-        }
-      });
+      try {
+        chrome.runtime.sendMessage({
+          action: 'refineText',
+          data: {
+            draftText: draftText,
+            conversationHistory: conversationHistory,
+            action: 'replace' // Direct replace mode
+          }
+        });
+      } catch (error) {
+        console.error('Error sending message to background:', error);
+        this.showNotification('Extension communication error. Please reload the page.', 'error');
+        this.isProcessing = false;
+      }
 
       this.showNotification('Refining and replacing your message...', 'info');
     } catch (error) {
@@ -607,6 +625,15 @@ class ChatRefinementExtension {
 }
 
 // Initialize the extension
-if (typeof window !== 'undefined') {
-  new ChatRefinementExtension();
+if (typeof window !== 'undefined' && typeof chrome !== 'undefined' && chrome.runtime) {
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      new ChatRefinementExtension();
+    });
+  } else {
+    new ChatRefinementExtension();
+  }
+} else {
+  console.error('Chat Refinement Extension: Chrome runtime not available');
 }

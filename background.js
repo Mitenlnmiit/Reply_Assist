@@ -5,17 +5,34 @@ class ChatRefinementBackground {
   }
 
   init() {
+    // Check if Chrome runtime is available
+    if (typeof chrome === 'undefined' || !chrome.runtime) {
+      console.error('Chrome runtime not available in background script');
+      return;
+    }
+
     // Listen for messages from content script
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === 'refineText') {
-        this.handleRefineText(request.data, sender.tab.id);
-        return true; // Keep message channel open for async response
+      try {
+        if (request.action === 'refineText') {
+          this.handleRefineText(request.data, sender.tab.id);
+          return true; // Keep message channel open for async response
+        }
+      } catch (error) {
+        console.error('Error handling message in background:', error);
+        if (sender.tab && sender.tab.id) {
+          this.sendErrorToContent(sender.tab.id, 'Background script error: ' + error.message);
+        }
       }
     });
 
     // Listen for commands
     chrome.commands.onCommand.addListener((command) => {
-      this.handleCommand(command);
+      try {
+        this.handleCommand(command);
+      } catch (error) {
+        console.error('Error handling command:', error);
+      }
     });
   }
 
@@ -37,13 +54,21 @@ class ChatRefinementBackground {
       const refinedText = await this.callGeminiAPI(apiKey, prompt);
       
       // Send response back to content script
-      chrome.tabs.sendMessage(tabId, {
-        action: 'refinementComplete',
-        data: {
-          refinedText: refinedText,
-          action: data.action || 'preview' // Use the action from the request
+      if (tabId) {
+        try {
+          chrome.tabs.sendMessage(tabId, {
+            action: 'refinementComplete',
+            data: {
+              refinedText: refinedText,
+              action: data.action || 'preview' // Use the action from the request
+            }
+          });
+        } catch (error) {
+          console.error('Error sending success message to content script:', error);
         }
-      });
+      } else {
+        console.error('No tab ID available for sending success message');
+      }
 
     } catch (error) {
       console.error('Error in background script:', error);
@@ -120,10 +145,19 @@ class ChatRefinementBackground {
   }
 
   sendErrorToContent(tabId, errorMessage) {
-    chrome.tabs.sendMessage(tabId, {
-      action: 'refinementError',
-      error: errorMessage
-    });
+    if (!tabId) {
+      console.error('No tab ID available for sending error message');
+      return;
+    }
+    
+    try {
+      chrome.tabs.sendMessage(tabId, {
+        action: 'refinementError',
+        error: errorMessage
+      });
+    } catch (error) {
+      console.error('Error sending message to content script:', error);
+    }
   }
 }
 
