@@ -30,15 +30,15 @@
   "commands": {
     "refine-preview": {
       "suggested_key": {
-        "default": "Ctrl+Y",
-        "mac": "Command+Y"
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
       },
       "description": "Show refined reply preview"
     },
     "refine-replace": {
       "suggested_key": {
-        "default": "Ctrl+U",
-        "mac": "Command+U"
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
       },
       "description": "Replace draft with refined reply"
     }

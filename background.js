@@ -41,7 +41,7 @@ class ChatRefinementBackground {
         action: 'refinementComplete',
         data: {
           refinedText: refinedText,
-          action: 'preview' // Default to preview mode
+          action: data.action || 'preview' // Use the action from the request
         }
       });
 

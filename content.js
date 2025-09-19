@@ -24,12 +24,12 @@ class ChatRefinementExtension {
   }
 
   handleKeyDown(event) {
-    // Check for Ctrl+Y (preview) or Ctrl+U (replace)
-    if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey) {
-      if (event.key === 'y' || event.key === 'Y') {
+    // Check for Ctrl+Shift+R (preview) or Ctrl+Shift+E (replace)
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey) {
+      if (event.key === 'R' || event.key === 'r') {
         event.preventDefault();
         this.handleRefinePreview();
-      } else if (event.key === 'u' || event.key === 'U') {
+      } else if (event.key === 'E' || event.key === 'e') {
         event.preventDefault();
         this.handleRefineReplace();
       }
@@ -64,7 +64,8 @@ class ChatRefinementExtension {
         action: 'refineText',
         data: {
           draftText: draftText,
-          conversationHistory: conversationHistory
+          conversationHistory: conversationHistory,
+          action: 'preview' // Preview mode
         }
       });
 
@@ -104,7 +105,8 @@ class ChatRefinementExtension {
         action: 'refineText',
         data: {
           draftText: draftText,
-          conversationHistory: conversationHistory
+          conversationHistory: conversationHistory,
+          action: 'replace' // Direct replace mode
         }
       });
 
