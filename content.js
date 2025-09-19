@@ -9,6 +9,31 @@ class ChatRefinementExtension {
     this.init();
   }
 
+  // ---------- Debug helpers ----------
+  debugEnabled() {
+    return true; // toggle here if needed
+  }
+
+  dbg(...args) {
+    if (!this.debugEnabled()) return;
+    try { console.log('[ChatRefinement]', ...args); } catch (_) {}
+  }
+
+  dbgGroup(title) {
+    if (!this.debugEnabled()) return;
+    try { console.groupCollapsed('[ChatRefinement]', title); } catch (_) {}
+  }
+
+  dbgGroupEnd() {
+    if (!this.debugEnabled()) return;
+    try { console.groupEnd(); } catch (_) {}
+  }
+
+  truncate(str, max = 500) {
+    if (!str) return '';
+    return str.length > max ? str.slice(0, max) + '…' : str;
+  }
+
   init() {
     // Check if Chrome runtime is available
     if (typeof chrome === 'undefined' || !chrome.runtime) {
@@ -31,12 +56,15 @@ class ChatRefinementExtension {
 
   handleKeyDown(event) {
     // Check for Ctrl+Shift+P (preview) or Ctrl+Shift+L (replace)
+    this.dbg('keydown', { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey, alt: event.altKey, key: event.key });
     if ((event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey) {
       if (event.key === 'p' || event.key === 'P') {
         event.preventDefault();
+        this.dbg('shortcut detected: preview (Ctrl+Shift+P)');
         this.handleRefinePreview();
       } else if (event.key === 'l' || event.key === 'L') {
         event.preventDefault();
+        this.dbg('shortcut detected: replace (Ctrl+Shift+L)');
         this.handleRefineReplace();
       }
     }
@@ -46,12 +74,14 @@ class ChatRefinementExtension {
     if (this.isProcessing) return;
     
     const textArea = this.getActiveTextArea();
+    this.dbg('preview: active text area found:', !!textArea);
     if (!textArea) {
       this.showNotification('No text area found. Click in a text input field first.', 'error');
       return;
     }
 
     const draftText = this.getTextFromElement(textArea);
+    this.dbg('preview: draft length:', draftText.length, 'preview:', this.truncate(draftText, 200));
     if (!draftText.trim()) {
       this.showNotification('No draft text found. Type something first.', 'error');
       return;
@@ -64,6 +94,8 @@ class ChatRefinementExtension {
     try {
       // Get conversation history
       const conversationHistory = this.extractConversationHistory();
+      this.dbg('preview: conversation items:', conversationHistory.length);
+      this.dbg('preview: conversation sample:', conversationHistory.slice(-3));
       
       // Send to background script for API call
       try {
@@ -75,6 +107,7 @@ class ChatRefinementExtension {
             action: 'preview' // Preview mode
           }
         });
+        this.dbg('preview: message sent to background');
       } catch (error) {
         console.error('Error sending message to background:', error);
         this.showNotification('Extension communication error. Please reload the page.', 'error');
@@ -93,12 +126,14 @@ class ChatRefinementExtension {
     if (this.isProcessing) return;
     
     const textArea = this.getActiveTextArea();
+    this.dbg('replace: active text area found:', !!textArea);
     if (!textArea) {
       this.showNotification('No text area found. Click in a text input field first.', 'error');
       return;
     }
 
     const draftText = this.getTextFromElement(textArea);
+    this.dbg('replace: draft length:', draftText.length, 'preview:', this.truncate(draftText, 200));
     if (!draftText.trim()) {
       this.showNotification('No draft text found. Type something first.', 'error');
       return;
@@ -111,6 +146,8 @@ class ChatRefinementExtension {
     try {
       // Get conversation history
       const conversationHistory = this.extractConversationHistory();
+      this.dbg('replace: conversation items:', conversationHistory.length);
+      this.dbg('replace: conversation sample:', conversationHistory.slice(-3));
       
       // Send to background script for API call
       try {
@@ -122,6 +159,7 @@ class ChatRefinementExtension {
             action: 'replace' // Direct replace mode
           }
         });
+        this.dbg('replace: message sent to background');
       } catch (error) {
         console.error('Error sending message to background:', error);
         this.showNotification('Extension communication error. Please reload the page.', 'error');
@@ -139,6 +177,7 @@ class ChatRefinementExtension {
   handleRefinementComplete(data) {
     this.isProcessing = false;
     this.refinedText = data.refinedText;
+    this.dbg('refinement complete; action:', data.action, 'refined length:', (data.refinedText || '').length, 'preview:', this.truncate(data.refinedText, 200));
     
     if (data.action === 'preview') {
       this.showRefinementPopup();
@@ -149,6 +188,7 @@ class ChatRefinementExtension {
 
   handleRefinementError(error) {
     this.isProcessing = false;
+    this.dbg('refinement error:', error);
     this.showNotification('Refinement failed: ' + error, 'error');
   }
 
@@ -229,9 +269,7 @@ class ChatRefinementExtension {
     let currentTokens = 0;
 
     // Debug: start log group
-    try {
-      console.groupCollapsed('[ChatRefinement] Scanning conversation history');
-    } catch (_) {}
+    this.dbgGroup('Scanning conversation history');
 
     // Common selectors for chat messages
     const messageSelectors = [
@@ -287,21 +325,17 @@ class ChatRefinementExtension {
       currentTokens += tokens;
 
       // Debug each included message
-      try {
-        console.log('[ChatRefinement] included', {
-          sender: isFromUser ? 'me' : 'other',
-          tokens,
-          textPreview: msg.text.length > 200 ? msg.text.slice(0, 200) + '…' : msg.text,
-          timestamp: msg.timestamp
-        });
-      } catch (_) {}
+      this.dbg('included', {
+        sender: isFromUser ? 'me' : 'other',
+        tokens,
+        textPreview: this.truncate(msg.text, 200),
+        timestamp: msg.timestamp
+      });
     }
 
     // Debug: summary
-    try {
-      console.log('[ChatRefinement] total messages:', conversation.length, 'approxTokens:', currentTokens);
-      console.groupEnd?.();
-    } catch (_) {}
+    this.dbg('total messages:', conversation.length, 'approxTokens:', currentTokens);
+    this.dbgGroupEnd();
 
     return conversation;
   }
