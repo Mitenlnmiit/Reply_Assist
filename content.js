@@ -228,6 +228,11 @@ class ChatRefinementExtension {
     const maxTokens = 2000;
     let currentTokens = 0;
 
+    // Debug: start log group
+    try {
+      console.groupCollapsed('[ChatRefinement] Scanning conversation history');
+    } catch (_) {}
+
     // Common selectors for chat messages
     const messageSelectors = [
       '.message',
@@ -280,7 +285,23 @@ class ChatRefinementExtension {
         timestamp: msg.timestamp
       });
       currentTokens += tokens;
+
+      // Debug each included message
+      try {
+        console.log('[ChatRefinement] included', {
+          sender: isFromUser ? 'me' : 'other',
+          tokens,
+          textPreview: msg.text.length > 200 ? msg.text.slice(0, 200) + '…' : msg.text,
+          timestamp: msg.timestamp
+        });
+      } catch (_) {}
     }
+
+    // Debug: summary
+    try {
+      console.log('[ChatRefinement] total messages:', conversation.length, 'approxTokens:', currentTokens);
+      console.groupEnd?.();
+    } catch (_) {}
 
     return conversation;
   }
@@ -300,12 +321,21 @@ class ChatRefinementExtension {
     for (const selector of textSelectors) {
       const textEl = element.querySelector(selector);
       if (textEl) {
-        return textEl.innerText || textEl.textContent || '';
+        const text = textEl.innerText || textEl.textContent || '';
+        // Debug raw extraction
+        try {
+          console.debug?.('[ChatRefinement] extracted via selector', selector, '→', text.length, 'chars');
+        } catch (_) {}
+        return text;
       }
     }
 
     // Fallback to element's own text
-    return element.innerText || element.textContent || '';
+    const fallback = element.innerText || element.textContent || '';
+    try {
+      console.debug?.('[ChatRefinement] extracted via fallback', '→', fallback.length, 'chars');
+    } catch (_) {}
+    return fallback;
   }
 
   extractTimestamp(element) {
@@ -321,7 +351,11 @@ class ChatRefinementExtension {
     for (const selector of timeSelectors) {
       const timeEl = element.querySelector(selector);
       if (timeEl) {
-        return timeEl.getAttribute('datetime') || timeEl.innerText || timeEl.textContent;
+        const ts = timeEl.getAttribute('datetime') || timeEl.innerText || timeEl.textContent;
+        try {
+          console.debug?.('[ChatRefinement] timestamp found via', selector, '→', ts);
+        } catch (_) {}
+        return ts;
       }
     }
 
@@ -344,6 +378,9 @@ class ChatRefinementExtension {
 
     for (const indicator of userIndicators) {
       if (element.matches(indicator) || element.closest(indicator)) {
+        try {
+          console.debug?.('[ChatRefinement] sender=me via indicator', indicator);
+        } catch (_) {}
         return true;
       }
     }
@@ -351,6 +388,9 @@ class ChatRefinementExtension {
     // Check for right-aligned messages (common in chat apps)
     const computedStyle = window.getComputedStyle(element);
     if (computedStyle.textAlign === 'right' || computedStyle.marginLeft === 'auto') {
+      try {
+        console.debug?.('[ChatRefinement] sender=me via alignment heuristic');
+      } catch (_) {}
       return true;
     }
 
