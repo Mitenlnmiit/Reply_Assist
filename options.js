@@ -72,36 +72,18 @@ class OptionsManager {
     this.updateApiKeyStatus('testing');
 
     try {
-      // Test with a simple API call
-      const testPrompt = {
-        contents: [{
-          parts: [{
-            text: 'Hello, this is a test message. Please respond with "Test successful" if you can read this.'
-          }]
-        }]
-      };
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testPrompt)
+      // Use background script to test the connection (avoids CORS issues)
+      const response = await chrome.runtime.sendMessage({
+        action: 'testApiConnection',
+        apiKey: apiKey
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`);
+      if (response && response.success) {
+        this.showAlert('Connection test successful! Your API key is working correctly.', 'success');
+        this.updateApiKeyStatus('success');
+      } else {
+        throw new Error(response?.error || 'Unknown error occurred');
       }
-
-      const data = await response.json();
-      
-      if (!data.candidates || data.candidates.length === 0) {
-        throw new Error('No response from API');
-      }
-
-      this.showAlert('Connection test successful! Your API key is working correctly.', 'success');
-      this.updateApiKeyStatus('success');
       
     } catch (error) {
       console.error('Connection test failed:', error);

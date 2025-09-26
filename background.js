@@ -21,11 +21,14 @@ class ChatRefinementBackground {
       return;
     }
 
-    // Listen for messages from content script
+    // Listen for messages from content script and options page
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         if (request.action === 'refineText') {
           this.handleRefineText(request.data, sender.tab.id);
+          return true; // Keep message channel open for async response
+        } else if (request.action === 'testApiConnection') {
+          this.handleTestApiConnection(request.apiKey, sendResponse);
           return true; // Keep message channel open for async response
         }
       } catch (error) {
@@ -94,6 +97,37 @@ class ChatRefinementBackground {
     }
   }
 
+  async handleTestApiConnection(apiKey, sendResponse) {
+    try {
+      if (!apiKey) {
+        sendResponse({ success: false, error: 'No API key provided' });
+        return;
+      }
+
+      // Test with a simple API call
+      const testPrompt = {
+        contents: [{
+          parts: [{
+            text: 'Hello, this is a test message. Please respond with "Test successful" if you can read this.'
+          }]
+        }]
+      };
+
+      const response = await this.callGeminiAPI(apiKey, testPrompt);
+      
+      if (response && response.trim()) {
+        this.dbg('API test successful');
+        sendResponse({ success: true, message: 'API connection test successful' });
+      } else {
+        sendResponse({ success: false, error: 'No response from API' });
+      }
+      
+    } catch (error) {
+      this.dbg('API test failed:', error.message);
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+
   async handleCommand(command) {
     if (command === 'refine-preview') {
       // Get active tab and send message to content script
@@ -133,7 +167,7 @@ class ChatRefinementBackground {
   }
 
   async callGeminiAPI(apiKey, prompt) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey}`;
     
     this.dbg('POST', url.replace(/key=[^&]+/, 'key=***')); // mask key
     const response = await fetch(url, {
