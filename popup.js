@@ -75,7 +75,14 @@ class PopupManager {
         }]
       };
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      // Log the test request details
+      console.log('=== GEMINI API TEST REQUEST ===');
+      console.log('URL:', `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey.substring(0, 10)}...`);
+      console.log('Request Body (Test Prompt):', JSON.stringify(testPrompt, null, 2));
+      console.log('Test Prompt Text:', testPrompt.contents[0].parts[0].text);
+      console.log('==============================');
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,10 +92,26 @@ class PopupManager {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.log('=== GEMINI API TEST ERROR ===');
+        console.log('Status:', response.status, response.statusText);
+        console.log('Error Data:', JSON.stringify(errorData, null, 2));
+        console.log('==============================');
         throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`);
       }
 
       const data = await response.json();
+      
+      // Log the test response details
+      console.log('=== GEMINI API TEST RESPONSE ===');
+      console.log('Complete Response:', JSON.stringify(data, null, 2));
+      console.log('Candidates Count:', Array.isArray(data.candidates) ? data.candidates.length : 0);
+      if (data.candidates && data.candidates.length > 0) {
+        console.log('First Candidate:', JSON.stringify(data.candidates[0], null, 2));
+        if (data.candidates[0].content && data.candidates[0].content.parts) {
+          console.log('Test Response Text:', data.candidates[0].content.parts[0].text);
+        }
+      }
+      console.log('================================');
       
       if (!data.candidates || data.candidates.length === 0) {
         throw new Error('No response from API');

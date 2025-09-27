@@ -34,11 +34,35 @@ class ChatRefinementExtension {
     return str.length > max ? str.slice(0, max) + '…' : str;
   }
 
+  isExtensionContextValid() {
+    try {
+      chrome.runtime.getManifest();
+      return true;
+    } catch (error) {
+      if (error.message.includes('Extension context invalidated')) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
   init() {
     // Check if Chrome runtime is available
     if (typeof chrome === 'undefined' || !chrome.runtime) {
       console.error('Chrome runtime not available');
       return;
+    }
+
+    // Check if extension context is still valid
+    try {
+      chrome.runtime.getManifest();
+    } catch (error) {
+      if (error.message.includes('Extension context invalidated')) {
+        console.error('Extension context invalidated - extension was reloaded');
+        this.showNotification('Extension was reloaded. Please refresh the page to continue.', 'error');
+        return;
+      }
+      throw error;
     }
 
     // Listen for keyboard shortcuts
@@ -50,21 +74,27 @@ class ChatRefinementExtension {
         this.handleRefinementComplete(request.data);
       } else if (request.action === 'refinementError') {
         this.handleRefinementError(request.error);
+      } else if (request.action === 'refinePreview') {
+        this.dbg('Received refinePreview message from background');
+        this.handleRefinePreview();
+      } else if (request.action === 'refineReplace') {
+        this.dbg('Received refineReplace message from background');
+        this.handleRefineReplace();
       }
     });
   }
 
   handleKeyDown(event) {
-    // Check for Ctrl+Shift+P (preview) or Ctrl+Shift+L (replace)
+    // Check for Alt+X (preview) or Alt+Q (replace)
     this.dbg('keydown', { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey, alt: event.altKey, key: event.key });
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey) {
-      if (event.key === 'p' || event.key === 'P') {
+    if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+      if (event.key === 'x' || event.key === 'X') {
         event.preventDefault();
-        this.dbg('shortcut detected: preview (Ctrl+Shift+P)');
+        this.dbg('shortcut detected: preview (Alt+X)');
         this.handleRefinePreview();
-      } else if (event.key === 'l' || event.key === 'L') {
+      } else if (event.key === 'q' || event.key === 'Q') {
         event.preventDefault();
-        this.dbg('shortcut detected: replace (Ctrl+Shift+L)');
+        this.dbg('shortcut detected: replace (Alt+Q)');
         this.handleRefineReplace();
       }
     }
@@ -72,6 +102,12 @@ class ChatRefinementExtension {
 
   async handleRefinePreview() {
     if (this.isProcessing) return;
+    
+    // Check if extension context is still valid
+    if (!this.isExtensionContextValid()) {
+      this.showNotification('Extension was reloaded. Please refresh the page to continue.', 'error');
+      return;
+    }
     
     const textArea = this.getActiveTextArea();
     this.dbg('preview: active text area found:', !!textArea);
@@ -94,8 +130,6 @@ class ChatRefinementExtension {
     try {
       // Get conversation history
       const conversationHistory = this.extractConversationHistory();
-      this.dbg('preview: conversation items:', conversationHistory.length);
-      this.dbg('preview: conversation sample:', conversationHistory.slice(-3));
       
       // Send to background script for API call
       try {
@@ -107,10 +141,13 @@ class ChatRefinementExtension {
             action: 'preview' // Preview mode
           }
         });
-        this.dbg('preview: message sent to background');
       } catch (error) {
         console.error('Error sending message to background:', error);
-        this.showNotification('Extension communication error. Please reload the page.', 'error');
+        if (error.message.includes('Extension context invalidated')) {
+          this.showNotification('Extension was reloaded. Please refresh the page to continue.', 'error');
+        } else {
+          this.showNotification('Extension communication error. Please reload the page.', 'error');
+        }
         this.isProcessing = false;
       }
 
@@ -124,6 +161,12 @@ class ChatRefinementExtension {
 
   async handleRefineReplace() {
     if (this.isProcessing) return;
+    
+    // Check if extension context is still valid
+    if (!this.isExtensionContextValid()) {
+      this.showNotification('Extension was reloaded. Please refresh the page to continue.', 'error');
+      return;
+    }
     
     const textArea = this.getActiveTextArea();
     this.dbg('replace: active text area found:', !!textArea);
@@ -146,8 +189,6 @@ class ChatRefinementExtension {
     try {
       // Get conversation history
       const conversationHistory = this.extractConversationHistory();
-      this.dbg('replace: conversation items:', conversationHistory.length);
-      this.dbg('replace: conversation sample:', conversationHistory.slice(-3));
       
       // Send to background script for API call
       try {
@@ -159,10 +200,13 @@ class ChatRefinementExtension {
             action: 'replace' // Direct replace mode
           }
         });
-        this.dbg('replace: message sent to background');
       } catch (error) {
         console.error('Error sending message to background:', error);
-        this.showNotification('Extension communication error. Please reload the page.', 'error');
+        if (error.message.includes('Extension context invalidated')) {
+          this.showNotification('Extension was reloaded. Please refresh the page to continue.', 'error');
+        } else {
+          this.showNotification('Extension communication error. Please reload the page.', 'error');
+        }
         this.isProcessing = false;
       }
 
@@ -284,7 +328,22 @@ class ChatRefinementExtension {
       '[data-testid*="msg"]',
       '.conversation-message',
       '.chat-bubble',
-      '.message-content'
+      '.message-content',
+      // Additional common selectors
+      'div[role="listitem"]',
+      'div[role="article"]',
+      '.conversation',
+      '.chat',
+      '.thread',
+      '.discussion',
+      '.post',
+      '.tweet',
+      '.status',
+      'article',
+      'section[class*="message"]',
+      'div[class*="message"]',
+      'div[class*="chat"]',
+      'div[class*="conversation"]'
     ];
 
     const messages = [];
@@ -331,6 +390,37 @@ class ChatRefinementExtension {
         textPreview: this.truncate(msg.text, 200),
         timestamp: msg.timestamp
       });
+    }
+
+    // If no messages found with selectors, try a fallback approach
+    if (messages.length === 0) {
+      // Look for any divs with substantial text content that might be messages
+      const allDivs = document.querySelectorAll('div');
+      
+      let fallbackMessages = [];
+      allDivs.forEach((div, index) => {
+        const text = (div.innerText || div.textContent || '').trim();
+        // Look for divs with reasonable text length (likely messages)
+        if (text.length > 10 && text.length < 1000 && !text.includes('\n\n\n')) {
+          // Check if this div has any of the common message indicators
+          const hasMessageIndicators = div.className.includes('message') || 
+                                    div.className.includes('chat') || 
+                                    div.className.includes('conversation') ||
+                                    div.className.includes('msg') ||
+                                    div.getAttribute('role') === 'listitem' ||
+                                    div.getAttribute('role') === 'article';
+          
+          if (hasMessageIndicators) {
+            fallbackMessages.push({
+              element: div,
+              text: text,
+              timestamp: this.extractTimestamp(div)
+            });
+          }
+        }
+      });
+      
+      messages.push(...fallbackMessages);
     }
 
     // Debug: summary

@@ -62,12 +62,11 @@ class ChatRefinementBackground {
 
       // Build the prompt
       const prompt = this.buildPrompt(data.draftText, data.conversationHistory);
-      this.dbg('request received', {
-        action: data.action,
-        draftLength: (data.draftText || '').length,
-        convItems: (data.conversationHistory || []).length
-      });
-      this.dbg('prompt preview', JSON.stringify(prompt).slice(0, 800) + '…');
+      
+      // Log the complete prompt being sent to Gemini
+      console.log('=== PROMPT SENT TO GEMINI ===');
+      console.log(prompt.contents[0].parts[0].text);
+      console.log('=============================');
       
       // Call Gemini API
       const refinedText = await this.callGeminiAPI(apiKey, prompt);
@@ -129,23 +128,50 @@ class ChatRefinementBackground {
   }
 
   async handleCommand(command) {
+    this.dbg('Command received:', command);
+    
     if (command === 'refine-preview') {
+      this.dbg('Handling refine-preview command');
       // Get active tab and send message to content script
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
+        this.dbg('Sending refinePreview message to tab:', tab.id);
         chrome.tabs.sendMessage(tab.id, { action: 'refinePreview' });
+      } else {
+        this.dbg('No active tab found');
       }
     } else if (command === 'refine-replace') {
+      this.dbg('Handling refine-replace command');
       // Get active tab and send message to content script
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
+        this.dbg('Sending refineReplace message to tab:', tab.id);
         chrome.tabs.sendMessage(tab.id, { action: 'refineReplace' });
+      } else {
+        this.dbg('No active tab found');
       }
+    } else {
+      this.dbg('Unknown command:', command);
     }
   }
 
   buildPrompt(draftText, conversationHistory) {
-    const systemPrompt = `You are a writing assistant that refines the user's draft reply in ongoing conversations. Keep it natural, context-aware, and concise. Maintain tone consistency with prior messages. Return only the refined text without any explanations or additional formatting.`;
+    const systemPrompt = `<System Prompt>
+You are a writing refinement assistant. 
+Your only task is to take user-written text and refine it so it becomes:
+- Preserving the original intent, meaning, and personal voice
+- Matching the tone of the surrounding conversation (given as context)
+
+You must never add new ideas, facts, or content that wasn't in the user text.
+
+<Rules>
+1. Preserve the intent and emotional nuance of the user text.
+2. Refer the message tone and context from given messages and include it in answer.
+3. Output only the refined text. Do not include explanations or notes.
+</Rules>
+</System Prompt>
+
+<User Input>`;
 
     let conversationText = '';
     if (conversationHistory && conversationHistory.length > 0) {
@@ -155,7 +181,7 @@ class ChatRefinementBackground {
       });
     }
 
-    const userPrompt = `${conversationText}\nMy draft reply: ${draftText}`;
+    const userPrompt = `${conversationText}\n<My Draft>${draftText}</My Draft>`;
 
     return {
       contents: [{
@@ -169,7 +195,6 @@ class ChatRefinementBackground {
   async callGeminiAPI(apiKey, prompt) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey}`;
     
-    this.dbg('POST', url.replace(/key=[^&]+/, 'key=***')); // mask key
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -185,7 +210,6 @@ class ChatRefinementBackground {
     }
 
     const data = await response.json();
-    this.dbg('raw candidates count', Array.isArray(data.candidates) ? data.candidates.length : 0);
     
     if (!data.candidates || data.candidates.length === 0) {
       throw new Error('No response from Gemini API');
