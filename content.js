@@ -224,7 +224,7 @@ class ChatRefinementExtension {
     this.dbg('refinement complete; action:', data.action, 'refined length:', (data.refinedText || '').length, 'preview:', this.truncate(data.refinedText, 200));
     
     if (data.action === 'preview') {
-      this.showRefinementPopup();
+      this.showMinimalRefinementOverlay(); // Use minimal overlay instead of large popup
     } else if (data.action === 'replace') {
       this.replaceText();
     }
@@ -584,6 +584,98 @@ class ChatRefinementExtension {
     document.addEventListener('keydown', escapeHandler);
   }
 
+  // New minimal inline overlay method
+  showMinimalRefinementOverlay() {
+    this.hidePopup(); // Remove existing popup
+
+    const overlay = document.createElement('div');
+    overlay.id = 'chat-refinement-minimal-overlay';
+    overlay.innerHTML = `
+      <div class="minimal-refinement-overlay">
+        <div class="overlay-content">
+          <div class="refined-text-preview">${this.escapeHtml(this.refinedText)}</div>
+          <div class="overlay-actions">
+            <button class="btn-minimal btn-accept" id="accept-refined" title="Accept (Enter)">✓ Accept</button>
+            <button class="btn-minimal btn-reject" id="reject-refined" title="Reject (Esc)">✗ Reject</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add minimal styles
+    this.addMinimalOverlayStyles();
+
+    // Position relative to text input
+    this.positionOverlayNearInput(overlay);
+
+    document.body.appendChild(overlay);
+    this.popup = overlay;
+
+    // Add event listeners
+    overlay.querySelector('#accept-refined').addEventListener('click', () => {
+      this.replaceText();
+      this.hidePopup();
+    });
+
+    overlay.querySelector('#reject-refined').addEventListener('click', () => {
+      this.hidePopup();
+    });
+
+    // Keyboard shortcuts
+    const keyHandler = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.replaceText();
+        this.hidePopup();
+        document.removeEventListener('keydown', keyHandler);
+      } else if (e.key === 'Escape') {
+        this.hidePopup();
+        document.removeEventListener('keydown', keyHandler);
+      }
+    };
+    document.addEventListener('keydown', keyHandler);
+
+    // Auto-dismiss after 10 seconds
+    setTimeout(() => {
+      if (this.popup && this.popup.id === 'chat-refinement-minimal-overlay') {
+        this.hidePopup();
+      }
+    }, 10000);
+  }
+
+  // Position overlay near the text input
+  positionOverlayNearInput(overlay) {
+    if (!this.currentTextArea) return;
+
+    const rect = this.currentTextArea.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    // Position above the text input, centered
+    const overlayElement = overlay.querySelector('.minimal-refinement-overlay');
+    overlayElement.style.position = 'absolute';
+    
+    // Calculate position with viewport bounds checking
+    const topPosition = Math.max(10, rect.top + scrollTop - 10); // At least 10px from top
+    const leftPosition = rect.left + scrollLeft + (rect.width / 2);
+    
+    overlayElement.style.top = `${topPosition}px`;
+    overlayElement.style.left = `${leftPosition}px`;
+    overlayElement.style.transform = 'translateX(-50%)'; // Center horizontally
+    
+    // Ensure it doesn't go off-screen horizontally
+    const overlayWidth = 300; // Approximate width
+    const viewportWidth = window.innerWidth;
+    const leftEdge = leftPosition - (overlayWidth / 2);
+    const rightEdge = leftPosition + (overlayWidth / 2);
+    
+    if (leftEdge < 10) {
+      overlayElement.style.left = `${10 + (overlayWidth / 2)}px`;
+    } else if (rightEdge > viewportWidth - 10) {
+      overlayElement.style.left = `${viewportWidth - 10 - (overlayWidth / 2)}px`;
+    }
+  }
+
   replaceText() {
     if (this.currentTextArea && this.refinedText) {
       this.setTextInElement(this.currentTextArea, this.refinedText);
@@ -730,6 +822,111 @@ class ChatRefinementExtension {
 
       .btn-secondary:hover {
         background: #545b62;
+      }
+    `;
+
+    document.head.appendChild(styles);
+  }
+
+  // Add minimal overlay styles
+  addMinimalOverlayStyles() {
+    if (document.getElementById('chat-refinement-minimal-styles')) return;
+
+    const styles = document.createElement('style');
+    styles.id = 'chat-refinement-minimal-styles';
+    styles.textContent = `
+      #chat-refinement-minimal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10000;
+      }
+
+      .minimal-refinement-overlay {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        min-width: 300px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        pointer-events: auto;
+        animation: slideInFromTop 0.2s ease-out;
+      }
+
+      @keyframes slideInFromTop {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      .overlay-content {
+        padding: 12px;
+      }
+
+      .refined-text-preview {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        font-size: 14px;
+        line-height: 1.4;
+        max-height: 100px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        color: #333;
+      }
+
+      .overlay-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .btn-minimal {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s;
+        min-width: 60px;
+      }
+
+      .btn-accept {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-accept:hover {
+        background: #218838;
+        transform: scale(1.05);
+      }
+
+      .btn-reject {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-reject:hover {
+        background: #c82333;
+        transform: scale(1.05);
+      }
+
+      .btn-minimal:focus {
+        outline: 2px solid #007bff;
+        outline-offset: 2px;
       }
     `;
 
