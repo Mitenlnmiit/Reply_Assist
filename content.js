@@ -9,7 +9,38 @@ class ChatRefinementExtension {
     this.init();
   }
 
+  // ---------- Debug helpers ----------
+  debugEnabled() {
+    return true; // toggle here if needed
+  }
+
+  dbg(...args) {
+    if (!this.debugEnabled()) return;
+    try { console.log('[ChatRefinement]', ...args); } catch (_) {}
+  }
+
+  dbgGroup(title) {
+    if (!this.debugEnabled()) return;
+    try { console.groupCollapsed('[ChatRefinement]', title); } catch (_) {}
+  }
+
+  dbgGroupEnd() {
+    if (!this.debugEnabled()) return;
+    try { console.groupEnd(); } catch (_) {}
+  }
+
+  truncate(str, max = 500) {
+    if (!str) return '';
+    return str.length > max ? str.slice(0, max) + '…' : str;
+  }
+
   init() {
+    // Check if Chrome runtime is available
+    if (typeof chrome === 'undefined' || !chrome.runtime) {
+      console.error('Chrome runtime not available');
+      return;
+    }
+
     // Listen for keyboard shortcuts
     document.addEventListener('keydown', this.handleKeyDown.bind(this));
     
@@ -24,13 +55,16 @@ class ChatRefinementExtension {
   }
 
   handleKeyDown(event) {
-    // Check for Ctrl+Y (preview) or Ctrl+U (replace)
-    if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey) {
-      if (event.key === 'y' || event.key === 'Y') {
+    // Check for Ctrl+Shift+P (preview) or Ctrl+Shift+L (replace)
+    this.dbg('keydown', { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey, alt: event.altKey, key: event.key });
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey) {
+      if (event.key === 'p' || event.key === 'P') {
         event.preventDefault();
+        this.dbg('shortcut detected: preview (Ctrl+Shift+P)');
         this.handleRefinePreview();
-      } else if (event.key === 'u' || event.key === 'U') {
+      } else if (event.key === 'l' || event.key === 'L') {
         event.preventDefault();
+        this.dbg('shortcut detected: replace (Ctrl+Shift+L)');
         this.handleRefineReplace();
       }
     }
@@ -40,12 +74,14 @@ class ChatRefinementExtension {
     if (this.isProcessing) return;
     
     const textArea = this.getActiveTextArea();
+    this.dbg('preview: active text area found:', !!textArea);
     if (!textArea) {
       this.showNotification('No text area found. Click in a text input field first.', 'error');
       return;
     }
 
     const draftText = this.getTextFromElement(textArea);
+    this.dbg('preview: draft length:', draftText.length, 'preview:', this.truncate(draftText, 200));
     if (!draftText.trim()) {
       this.showNotification('No draft text found. Type something first.', 'error');
       return;
@@ -58,15 +94,25 @@ class ChatRefinementExtension {
     try {
       // Get conversation history
       const conversationHistory = this.extractConversationHistory();
+      this.dbg('preview: conversation items:', conversationHistory.length);
+      this.dbg('preview: conversation sample:', conversationHistory.slice(-3));
       
       // Send to background script for API call
-      chrome.runtime.sendMessage({
-        action: 'refineText',
-        data: {
-          draftText: draftText,
-          conversationHistory: conversationHistory
-        }
-      });
+      try {
+        chrome.runtime.sendMessage({
+          action: 'refineText',
+          data: {
+            draftText: draftText,
+            conversationHistory: conversationHistory,
+            action: 'preview' // Preview mode
+          }
+        });
+        this.dbg('preview: message sent to background');
+      } catch (error) {
+        console.error('Error sending message to background:', error);
+        this.showNotification('Extension communication error. Please reload the page.', 'error');
+        this.isProcessing = false;
+      }
 
       this.showNotification('Refining your message...', 'info');
     } catch (error) {
@@ -80,12 +126,14 @@ class ChatRefinementExtension {
     if (this.isProcessing) return;
     
     const textArea = this.getActiveTextArea();
+    this.dbg('replace: active text area found:', !!textArea);
     if (!textArea) {
       this.showNotification('No text area found. Click in a text input field first.', 'error');
       return;
     }
 
     const draftText = this.getTextFromElement(textArea);
+    this.dbg('replace: draft length:', draftText.length, 'preview:', this.truncate(draftText, 200));
     if (!draftText.trim()) {
       this.showNotification('No draft text found. Type something first.', 'error');
       return;
@@ -98,15 +146,25 @@ class ChatRefinementExtension {
     try {
       // Get conversation history
       const conversationHistory = this.extractConversationHistory();
+      this.dbg('replace: conversation items:', conversationHistory.length);
+      this.dbg('replace: conversation sample:', conversationHistory.slice(-3));
       
       // Send to background script for API call
-      chrome.runtime.sendMessage({
-        action: 'refineText',
-        data: {
-          draftText: draftText,
-          conversationHistory: conversationHistory
-        }
-      });
+      try {
+        chrome.runtime.sendMessage({
+          action: 'refineText',
+          data: {
+            draftText: draftText,
+            conversationHistory: conversationHistory,
+            action: 'replace' // Direct replace mode
+          }
+        });
+        this.dbg('replace: message sent to background');
+      } catch (error) {
+        console.error('Error sending message to background:', error);
+        this.showNotification('Extension communication error. Please reload the page.', 'error');
+        this.isProcessing = false;
+      }
 
       this.showNotification('Refining and replacing your message...', 'info');
     } catch (error) {
@@ -119,6 +177,7 @@ class ChatRefinementExtension {
   handleRefinementComplete(data) {
     this.isProcessing = false;
     this.refinedText = data.refinedText;
+    this.dbg('refinement complete; action:', data.action, 'refined length:', (data.refinedText || '').length, 'preview:', this.truncate(data.refinedText, 200));
     
     if (data.action === 'preview') {
       this.showRefinementPopup();
@@ -129,6 +188,7 @@ class ChatRefinementExtension {
 
   handleRefinementError(error) {
     this.isProcessing = false;
+    this.dbg('refinement error:', error);
     this.showNotification('Refinement failed: ' + error, 'error');
   }
 
@@ -208,6 +268,9 @@ class ChatRefinementExtension {
     const maxTokens = 2000;
     let currentTokens = 0;
 
+    // Debug: start log group
+    this.dbgGroup('Scanning conversation history');
+
     // Common selectors for chat messages
     const messageSelectors = [
       '.message',
@@ -260,7 +323,19 @@ class ChatRefinementExtension {
         timestamp: msg.timestamp
       });
       currentTokens += tokens;
+
+      // Debug each included message
+      this.dbg('included', {
+        sender: isFromUser ? 'me' : 'other',
+        tokens,
+        textPreview: this.truncate(msg.text, 200),
+        timestamp: msg.timestamp
+      });
     }
+
+    // Debug: summary
+    this.dbg('total messages:', conversation.length, 'approxTokens:', currentTokens);
+    this.dbgGroupEnd();
 
     return conversation;
   }
@@ -280,12 +355,21 @@ class ChatRefinementExtension {
     for (const selector of textSelectors) {
       const textEl = element.querySelector(selector);
       if (textEl) {
-        return textEl.innerText || textEl.textContent || '';
+        const text = textEl.innerText || textEl.textContent || '';
+        // Debug raw extraction
+        try {
+          console.debug?.('[ChatRefinement] extracted via selector', selector, '→', text.length, 'chars');
+        } catch (_) {}
+        return text;
       }
     }
 
     // Fallback to element's own text
-    return element.innerText || element.textContent || '';
+    const fallback = element.innerText || element.textContent || '';
+    try {
+      console.debug?.('[ChatRefinement] extracted via fallback', '→', fallback.length, 'chars');
+    } catch (_) {}
+    return fallback;
   }
 
   extractTimestamp(element) {
@@ -301,7 +385,11 @@ class ChatRefinementExtension {
     for (const selector of timeSelectors) {
       const timeEl = element.querySelector(selector);
       if (timeEl) {
-        return timeEl.getAttribute('datetime') || timeEl.innerText || timeEl.textContent;
+        const ts = timeEl.getAttribute('datetime') || timeEl.innerText || timeEl.textContent;
+        try {
+          console.debug?.('[ChatRefinement] timestamp found via', selector, '→', ts);
+        } catch (_) {}
+        return ts;
       }
     }
 
@@ -324,6 +412,9 @@ class ChatRefinementExtension {
 
     for (const indicator of userIndicators) {
       if (element.matches(indicator) || element.closest(indicator)) {
+        try {
+          console.debug?.('[ChatRefinement] sender=me via indicator', indicator);
+        } catch (_) {}
         return true;
       }
     }
@@ -331,6 +422,9 @@ class ChatRefinementExtension {
     // Check for right-aligned messages (common in chat apps)
     const computedStyle = window.getComputedStyle(element);
     if (computedStyle.textAlign === 'right' || computedStyle.marginLeft === 'auto') {
+      try {
+        console.debug?.('[ChatRefinement] sender=me via alignment heuristic');
+      } catch (_) {}
       return true;
     }
 
@@ -605,6 +699,15 @@ class ChatRefinementExtension {
 }
 
 // Initialize the extension
-if (typeof window !== 'undefined') {
-  new ChatRefinementExtension();
+if (typeof window !== 'undefined' && typeof chrome !== 'undefined' && chrome.runtime) {
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      new ChatRefinementExtension();
+    });
+  } else {
+    new ChatRefinementExtension();
+  }
+} else {
+  console.error('Chat Refinement Extension: Chrome runtime not available');
 }

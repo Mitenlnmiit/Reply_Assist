@@ -32,8 +32,8 @@
 ### Step 4: Start Using!
 1. Go to any chat website (WhatsApp Web, Gmail, LinkedIn, etc.)
 2. Click in a text field and type your message
-3. Press `Ctrl+Y` to preview refined version
-4. Press `Ctrl+U` to replace with refined version
+3. Press `Ctrl+Shift+P` to preview refined version
+4. Press `Ctrl+Shift+L` to replace with refined version
 
 ## 🧪 Test the Extension
 
@@ -41,7 +41,7 @@ I've included a test page to verify everything works:
 
 1. Open `test-page.html` in your browser
 2. Type a message in any of the input fields
-3. Press `Ctrl+Y` or `Ctrl+U` to test the refinement
+3. Press `Ctrl+Shift+P` or `Ctrl+Shift+L` to test the refinement
 
 ## 📱 Supported Platforms
 

@@ -4,18 +4,45 @@ class ChatRefinementBackground {
     this.init();
   }
 
+  // ---------- Debug helpers ----------
+  debugEnabled() {
+    return true; // toggle if needed
+  }
+
+  dbg(...args) {
+    if (!this.debugEnabled()) return;
+    try { console.log('[ChatRefinement:BG]', ...args); } catch (_) {}
+  }
+
   init() {
+    // Check if Chrome runtime is available
+    if (typeof chrome === 'undefined' || !chrome.runtime) {
+      console.error('Chrome runtime not available in background script');
+      return;
+    }
+
     // Listen for messages from content script
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === 'refineText') {
-        this.handleRefineText(request.data, sender.tab.id);
-        return true; // Keep message channel open for async response
+      try {
+        if (request.action === 'refineText') {
+          this.handleRefineText(request.data, sender.tab.id);
+          return true; // Keep message channel open for async response
+        }
+      } catch (error) {
+        console.error('Error handling message in background:', error);
+        if (sender.tab && sender.tab.id) {
+          this.sendErrorToContent(sender.tab.id, 'Background script error: ' + error.message);
+        }
       }
     });
 
     // Listen for commands
     chrome.commands.onCommand.addListener((command) => {
-      this.handleCommand(command);
+      try {
+        this.handleCommand(command);
+      } catch (error) {
+        console.error('Error handling command:', error);
+      }
     });
   }
 
@@ -32,18 +59,34 @@ class ChatRefinementBackground {
 
       // Build the prompt
       const prompt = this.buildPrompt(data.draftText, data.conversationHistory);
+      this.dbg('request received', {
+        action: data.action,
+        draftLength: (data.draftText || '').length,
+        convItems: (data.conversationHistory || []).length
+      });
+      this.dbg('prompt preview', JSON.stringify(prompt).slice(0, 800) + '…');
       
       // Call Gemini API
       const refinedText = await this.callGeminiAPI(apiKey, prompt);
+      this.dbg('response length', (refinedText || '').length, 'preview:', (refinedText || '').slice(0, 300) + (refinedText && refinedText.length > 300 ? '…' : ''));
       
       // Send response back to content script
-      chrome.tabs.sendMessage(tabId, {
-        action: 'refinementComplete',
-        data: {
-          refinedText: refinedText,
-          action: 'preview' // Default to preview mode
+      if (tabId) {
+        try {
+          chrome.tabs.sendMessage(tabId, {
+            action: 'refinementComplete',
+            data: {
+              refinedText: refinedText,
+              action: data.action || 'preview' // Use the action from the request
+            }
+          });
+          this.dbg('sent refinementComplete back to tab', tabId);
+        } catch (error) {
+          console.error('Error sending success message to content script:', error);
         }
-      });
+      } else {
+        console.error('No tab ID available for sending success message');
+      }
 
     } catch (error) {
       console.error('Error in background script:', error);
@@ -92,6 +135,7 @@ class ChatRefinementBackground {
   async callGeminiAPI(apiKey, prompt) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
+    this.dbg('POST', url.replace(/key=[^&]+/, 'key=***')); // mask key
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -102,10 +146,12 @@ class ChatRefinementBackground {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      this.dbg('API error', response.status, response.statusText, errorData);
       throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`);
     }
 
     const data = await response.json();
+    this.dbg('raw candidates count', Array.isArray(data.candidates) ? data.candidates.length : 0);
     
     if (!data.candidates || data.candidates.length === 0) {
       throw new Error('No response from Gemini API');
@@ -120,10 +166,19 @@ class ChatRefinementBackground {
   }
 
   sendErrorToContent(tabId, errorMessage) {
-    chrome.tabs.sendMessage(tabId, {
-      action: 'refinementError',
-      error: errorMessage
-    });
+    if (!tabId) {
+      console.error('No tab ID available for sending error message');
+      return;
+    }
+    
+    try {
+      chrome.tabs.sendMessage(tabId, {
+        action: 'refinementError',
+        error: errorMessage
+      });
+    } catch (error) {
+      console.error('Error sending message to content script:', error);
+    }
   }
 }
 
