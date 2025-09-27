@@ -595,8 +595,8 @@ class ChatRefinementExtension {
         <div class="overlay-content">
           <div class="refined-text-preview">${this.escapeHtml(this.refinedText)}</div>
           <div class="overlay-actions">
-            <button class="btn-minimal btn-accept" id="accept-refined" title="Accept (Enter)">✓ Accept (Enter)</button>
-            <button class="btn-minimal btn-reject" id="reject-refined" title="Reject (Esc)">✗ Reject (Esc)</button>
+            <button class="btn-minimal btn-accept" id="accept-refined" title="Accept (Enter)">✓ Enter</button>
+            <button class="btn-minimal btn-reject" id="reject-refined" title="Reject (Esc)">✗ Esc</button>
           </div>
         </div>
       </div>
@@ -664,7 +664,7 @@ class ChatRefinementExtension {
     overlayElement.style.transform = 'translateX(-50%)'; // Center horizontally
     
     // Ensure it doesn't go off-screen horizontally
-    const overlayWidth = 400; // Approximate width for wider buttons
+    const overlayWidth = 300; // Approximate width for compact buttons
     const viewportWidth = window.innerWidth;
     const leftEdge = leftPosition - (overlayWidth / 2);
     const rightEdge = leftPosition + (overlayWidth / 2);
@@ -850,8 +850,9 @@ class ChatRefinementExtension {
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        max-width: 450px;
-        min-width: 350px;
+        max-width: 400px;
+        min-width: 300px;
+        width: fit-content;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         pointer-events: auto;
         animation: slideInFromTop 0.2s ease-out;
@@ -901,7 +902,7 @@ class ChatRefinementExtension {
         font-size: 12px;
         font-weight: 500;
         transition: all 0.2s;
-        min-width: 100px;
+        width: auto;
         white-space: nowrap;
       }
 
