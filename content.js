@@ -735,8 +735,8 @@ class ChatRefinementExtension {
     controls.id = 'inline-refinement-controls';
     controls.innerHTML = `
       <div class="mini-controls">
-        <button class="mini-btn mini-accept" id="mini-accept" title="Accept (Enter)">✓</button>
-        <button class="mini-btn mini-reject" id="mini-reject" title="Reject (Esc)">✗</button>
+        <button class="mini-btn mini-accept" id="mini-accept" title="Accept (Enter)">✓ Enter</button>
+        <button class="mini-btn mini-reject" id="mini-reject" title="Reject (Esc)">✗ Esc</button>
       </div>
     `;
 
@@ -747,7 +747,7 @@ class ChatRefinementExtension {
 
     controls.style.position = 'absolute';
     controls.style.top = `${rect.bottom + scrollTop + 5}px`;
-    controls.style.left = `${rect.right + scrollLeft - 60}px`;
+    controls.style.left = `${rect.right + scrollLeft - 120}px`; // Wider buttons need more space
     controls.style.zIndex = '10001';
 
     document.body.appendChild(controls);
@@ -1115,17 +1115,18 @@ class ChatRefinementExtension {
       }
 
       .mini-btn {
-        width: 24px;
-        height: 24px;
+        padding: 4px 8px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 12px;
-        font-weight: bold;
+        font-size: 11px;
+        font-weight: 500;
         transition: all 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
+        white-space: nowrap;
+        min-width: 50px;
       }
 
       .mini-accept {
