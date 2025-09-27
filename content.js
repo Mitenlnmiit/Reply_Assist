@@ -224,7 +224,7 @@ class ChatRefinementExtension {
     this.dbg('refinement complete; action:', data.action, 'refined length:', (data.refinedText || '').length, 'preview:', this.truncate(data.refinedText, 200));
     
     if (data.action === 'preview') {
-      this.showMinimalRefinementOverlay(); // Use minimal overlay instead of large popup
+      this.showInlineTextHighlighting(); // Use ultra-minimal inline highlighting
     } else if (data.action === 'replace') {
       this.replaceText();
     }
@@ -643,6 +643,47 @@ class ChatRefinementExtension {
     }, 10000);
   }
 
+  // NEW: Ultra-minimal inline text highlighting method
+  showInlineTextHighlighting() {
+    this.hidePopup(); // Remove existing popup
+
+    if (!this.currentTextArea || !this.refinedText) return;
+
+    // Store original text for restoration
+    this.originalText = this.getTextFromElement(this.currentTextArea);
+    
+    // Create diff visualization
+    const diff = this.createTextDiff(this.originalText, this.refinedText);
+    
+    // Temporarily replace text with highlighted version
+    this.setTextInElement(this.currentTextArea, this.refinedText);
+    
+    // Add highlighting styles to the text input
+    this.addInlineHighlightingStyles();
+    this.currentTextArea.classList.add('refinement-highlighted');
+    
+    // Create mini floating controls
+    this.createMiniFloatingControls();
+    
+    // Add keyboard shortcuts
+    const keyHandler = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.acceptInlineRefinement();
+        document.removeEventListener('keydown', keyHandler);
+      } else if (e.key === 'Escape') {
+        this.rejectInlineRefinement();
+        document.removeEventListener('keydown', keyHandler);
+      }
+    };
+    document.addEventListener('keydown', keyHandler);
+
+    // Auto-accept after 5 seconds
+    this.autoAcceptTimeout = setTimeout(() => {
+      this.acceptInlineRefinement();
+    }, 5000);
+  }
+
   // Position overlay near the text input
   positionOverlayNearInput(overlay) {
     if (!this.currentTextArea) return;
@@ -673,6 +714,98 @@ class ChatRefinementExtension {
       overlayElement.style.left = `${10 + (overlayWidth / 2)}px`;
     } else if (rightEdge > viewportWidth - 10) {
       overlayElement.style.left = `${viewportWidth - 10 - (overlayWidth / 2)}px`;
+    }
+  }
+
+  // Create text diff for highlighting
+  createTextDiff(original, refined) {
+    // Simple diff algorithm - highlight the entire refined text
+    return {
+      original: original,
+      refined: refined,
+      changes: refined !== original
+    };
+  }
+
+  // Create mini floating controls
+  createMiniFloatingControls() {
+    if (!this.currentTextArea) return;
+
+    const controls = document.createElement('div');
+    controls.id = 'inline-refinement-controls';
+    controls.innerHTML = `
+      <div class="mini-controls">
+        <button class="mini-btn mini-accept" id="mini-accept" title="Accept (Enter)">✓</button>
+        <button class="mini-btn mini-reject" id="mini-reject" title="Reject (Esc)">✗</button>
+      </div>
+    `;
+
+    // Position near the text input
+    const rect = this.currentTextArea.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    controls.style.position = 'absolute';
+    controls.style.top = `${rect.bottom + scrollTop + 5}px`;
+    controls.style.left = `${rect.right + scrollLeft - 60}px`;
+    controls.style.zIndex = '10001';
+
+    document.body.appendChild(controls);
+    this.miniControls = controls;
+
+    // Add event listeners
+    controls.querySelector('#mini-accept').addEventListener('click', () => {
+      this.acceptInlineRefinement();
+    });
+
+    controls.querySelector('#mini-reject').addEventListener('click', () => {
+      this.rejectInlineRefinement();
+    });
+  }
+
+  // Accept inline refinement
+  acceptInlineRefinement() {
+    if (this.autoAcceptTimeout) {
+      clearTimeout(this.autoAcceptTimeout);
+      this.autoAcceptTimeout = null;
+    }
+    
+    this.cleanupInlineHighlighting();
+    this.showNotification('Text refined successfully', 'success');
+  }
+
+  // Reject inline refinement
+  rejectInlineRefinement() {
+    if (this.autoAcceptTimeout) {
+      clearTimeout(this.autoAcceptTimeout);
+      this.autoAcceptTimeout = null;
+    }
+    
+    // Restore original text
+    if (this.currentTextArea && this.originalText) {
+      this.setTextInElement(this.currentTextArea, this.originalText);
+    }
+    
+    this.cleanupInlineHighlighting();
+  }
+
+  // Cleanup inline highlighting
+  cleanupInlineHighlighting() {
+    // Remove highlighting class
+    if (this.currentTextArea) {
+      this.currentTextArea.classList.remove('refinement-highlighted');
+    }
+    
+    // Remove mini controls
+    if (this.miniControls) {
+      this.miniControls.remove();
+      this.miniControls = null;
+    }
+    
+    // Remove inline highlighting styles
+    const styles = document.getElementById('inline-highlighting-styles');
+    if (styles) {
+      styles.remove();
     }
   }
 
@@ -929,6 +1062,95 @@ class ChatRefinementExtension {
       .btn-minimal:focus {
         outline: 2px solid #007bff;
         outline-offset: 2px;
+      }
+    `;
+
+    document.head.appendChild(styles);
+  }
+
+  // Add inline highlighting styles
+  addInlineHighlightingStyles() {
+    if (document.getElementById('inline-highlighting-styles')) return;
+
+    const styles = document.createElement('style');
+    styles.id = 'inline-highlighting-styles';
+    styles.textContent = `
+      .refinement-highlighted {
+        background: linear-gradient(90deg, 
+          rgba(40, 167, 69, 0.1) 0%, 
+          rgba(40, 167, 69, 0.05) 50%, 
+          rgba(40, 167, 69, 0.1) 100%);
+        border: 2px solid #28a745 !important;
+        border-radius: 4px !important;
+        box-shadow: 0 0 0 1px rgba(40, 167, 69, 0.3) !important;
+        transition: all 0.3s ease !important;
+      }
+
+      #inline-refinement-controls {
+        position: absolute;
+        z-index: 10001;
+        pointer-events: auto;
+      }
+
+      .mini-controls {
+        display: flex;
+        gap: 4px;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        padding: 4px;
+        animation: fadeInScale 0.2s ease-out;
+      }
+
+      @keyframes fadeInScale {
+        from {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .mini-btn {
+        width: 24px;
+        height: 24px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .mini-accept {
+        background: #28a745;
+        color: white;
+      }
+
+      .mini-accept:hover {
+        background: #218838;
+        transform: scale(1.1);
+      }
+
+      .mini-reject {
+        background: #dc3545;
+        color: white;
+      }
+
+      .mini-reject:hover {
+        background: #c82333;
+        transform: scale(1.1);
+      }
+
+      .mini-btn:focus {
+        outline: 2px solid #007bff;
+        outline-offset: 1px;
       }
     `;
 
