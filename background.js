@@ -1,6 +1,10 @@
 // Background script for Chat Refinement Assistant
 class ChatRefinementBackground {
   constructor() {
+    this.requestCount = 0;
+    this.lastRequestTime = 0;
+    this.rateLimitWindow = 60000; // 1 minute window
+    this.maxRequestsPerMinute = 15; // Conservative limit
     this.init();
   }
 
@@ -30,6 +34,10 @@ class ChatRefinementBackground {
         } else if (request.action === 'testApiConnection') {
           this.handleTestApiConnection(request.apiKey, sendResponse);
           return true; // Keep message channel open for async response
+        } else if (request.action === 'getRateLimitStatus') {
+          const status = this.getRateLimitStatus();
+          sendResponse(status);
+          return true;
         }
       } catch (error) {
         console.error('Error handling message in background:', error);
@@ -193,7 +201,22 @@ You must never add new ideas, facts, or content that wasn't in the user text.
   }
 
   async callGeminiAPI(apiKey, prompt) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey}`;
+    // Check rate limiting
+    const now = Date.now();
+    if (now - this.lastRequestTime > this.rateLimitWindow) {
+      this.requestCount = 0;
+      this.lastRequestTime = now;
+    }
+    
+    if (this.requestCount >= this.maxRequestsPerMinute) {
+      const waitTime = this.rateLimitWindow - (now - this.lastRequestTime);
+      throw new Error(`Rate limit reached. Please wait ${Math.ceil(waitTime / 1000)} seconds before trying again.`);
+    }
+    
+    this.requestCount++;
+    this.dbg('Rate limiting check', { requestCount: this.requestCount, timeSinceLastWindow: now - this.lastRequestTime });
+    
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
     
     const response = await fetch(url, {
       method: 'POST',
@@ -206,6 +229,16 @@ You must never add new ideas, facts, or content that wasn't in the user text.
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       this.dbg('API error', response.status, response.statusText, errorData);
+      
+      // Check for rate limiting
+      if (response.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait before making more requests. Status: ${response.status}`);
+      } else if (response.status === 503) {
+        throw new Error(`Service temporarily unavailable. This might be due to high traffic or rate limiting. Status: ${response.status}`);
+      } else if (response.status === 403) {
+        throw new Error(`Access forbidden. Check your API key and permissions. Status: ${response.status}`);
+      }
+      
       throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`);
     }
 
@@ -237,6 +270,22 @@ You must never add new ideas, facts, or content that wasn't in the user text.
     } catch (error) {
       console.error('Error sending message to content script:', error);
     }
+  }
+
+  // Get current rate limiting status
+  getRateLimitStatus() {
+    const now = Date.now();
+    const timeSinceLastWindow = now - this.lastRequestTime;
+    const requestsRemaining = Math.max(0, this.maxRequestsPerMinute - this.requestCount);
+    const windowResetTime = this.rateLimitWindow - timeSinceLastWindow;
+    
+    return {
+      requestCount: this.requestCount,
+      maxRequests: this.maxRequestsPerMinute,
+      requestsRemaining: requestsRemaining,
+      windowResetTime: Math.max(0, windowResetTime),
+      isRateLimited: this.requestCount >= this.maxRequestsPerMinute
+    };
   }
 }
 

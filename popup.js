@@ -58,6 +58,21 @@ class PopupManager {
     testButton.textContent = 'Testing...';
     this.updateStatus('warning', '🔄', 'Testing connection...', 'Please wait');
 
+    // Check rate limit status first
+    try {
+      const rateLimitStatus = await chrome.runtime.sendMessage({ action: 'getRateLimitStatus' });
+      console.log('Rate limit status:', rateLimitStatus);
+      
+      if (rateLimitStatus.isRateLimited) {
+        this.updateStatus('error', '⏰', 'Rate limited', `Please wait ${Math.ceil(rateLimitStatus.windowResetTime / 1000)} seconds`);
+        testButton.disabled = false;
+        testButton.textContent = originalText;
+        return;
+      }
+    } catch (error) {
+      console.log('Could not check rate limit status:', error);
+    }
+
     try {
       const result = await chrome.storage.sync.get(['geminiApiKey']);
       const apiKey = result.geminiApiKey;
@@ -77,12 +92,12 @@ class PopupManager {
 
       // Log the test request details
       console.log('=== GEMINI API TEST REQUEST ===');
-      console.log('URL:', `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey.substring(0, 10)}...`);
+      console.log('URL:', `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey.substring(0, 10)}...`);
       console.log('Request Body (Test Prompt):', JSON.stringify(testPrompt, null, 2));
       console.log('Test Prompt Text:', testPrompt.contents[0].parts[0].text);
       console.log('==============================');
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

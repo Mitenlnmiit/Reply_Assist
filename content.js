@@ -80,6 +80,10 @@ class ChatRefinementExtension {
       } else if (request.action === 'refineReplace') {
         this.dbg('Received refineReplace message from background');
         this.handleRefineReplace();
+      } else if (request.action === 'ping') {
+        // Respond to ping to confirm content script is available
+        sendResponse({ status: 'available' });
+        return true;
       }
     });
   }
@@ -295,11 +299,27 @@ class ChatRefinementExtension {
       element.innerText = text;
       element.textContent = text;
       
+      // Position cursor at the end of the text
+      const selection = window.getSelection();
+      const range = document.createRange();
+      const textNode = element.firstChild;
+      if (textNode) {
+        const endOffset = textNode.length;
+        range.setStart(textNode, endOffset);
+        range.setEnd(textNode, endOffset);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      
       // Trigger input event for React/Vue components
       const event = new Event('input', { bubbles: true });
       element.dispatchEvent(event);
     } else {
       element.value = text;
+      
+      // Position cursor at the end of the text
+      const endPosition = text.length;
+      element.setSelectionRange(endPosition, endPosition);
       
       // Trigger input event for React/Vue components
       const event = new Event('input', { bubbles: true });
@@ -678,10 +698,7 @@ class ChatRefinementExtension {
     };
     document.addEventListener('keydown', keyHandler);
 
-    // Auto-accept after 5 seconds
-    this.autoAcceptTimeout = setTimeout(() => {
-      this.acceptInlineRefinement();
-    }, 5000);
+    // No auto-accept for preview mode - wait for user input
   }
 
   // Position overlay near the text input
