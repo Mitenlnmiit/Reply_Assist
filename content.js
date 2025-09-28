@@ -9,6 +9,11 @@ class ChatRefinementExtension {
     this.customInstructionBox = null;
     this.customInstruction = '';
     this.isCustomCommandMode = false;
+    // NEW: Replacement UI state
+    this.diffModel = [];
+    this.currentHunkIndex = 0;
+    this.replacementPanel = null;
+    this.replacementShortcuts = null;
     this.init();
   }
 
@@ -96,21 +101,9 @@ class ChatRefinementExtension {
 
   handleKeyDown(event) {
     // Check for Alt+X (custom commands) or Alt+Q (replace)
-    console.log('[KEYBOARD] Key pressed:', {
-      key: event.key,
-      alt: event.altKey,
-      ctrl: event.ctrlKey,
-      meta: event.metaKey,
-      shift: event.shiftKey,
-      isCustomCommandMode: this.isCustomCommandMode,
-      hasCustomBox: !!this.customInstructionBox
-    });
-    
-    this.dbg('keydown', { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey, alt: event.altKey, key: event.key });
     
     // Handle custom instruction box keyboard events
     if (this.isCustomCommandMode && this.customInstructionBox) {
-      console.log('[KEYBOARD] In custom command mode, handling input events');
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         console.log('[KEYBOARD] Enter pressed in custom command mode');
@@ -307,9 +300,9 @@ class ChatRefinementExtension {
     if (data.action === 'preview') {
       this.showInlineTextHighlighting(); // Use ultra-minimal inline highlighting
     } else if (data.action === 'replace') {
-      this.replaceText();
+      this.showReplacementPanel(); // NEW: Show Cursor-style replacement panel
     } else if (data.action === 'custom') {
-      this.showInlineTextHighlighting(); // Show custom instruction result
+      this.showReplacementPanel(); // NEW: Show Cursor-style replacement panel for custom instructions
     }
   }
 
@@ -625,6 +618,424 @@ class ChatRefinementExtension {
     return Math.ceil(text.length / 4);
   }
 
+  // NEW: Build diff model for replacement UI
+  buildDiffModel(original, refined) {
+    console.log('[REPLACEMENT] Building diff model');
+    
+    if (original === refined) {
+      console.log('[REPLACEMENT] No changes detected');
+      return [];
+    }
+
+    // Simple word-level diff algorithm
+    const originalWords = this.tokenizeText(original);
+    const refinedWords = this.tokenizeText(refined);
+    
+    const hunks = this.computeWordDiff(originalWords, refinedWords);
+    
+    console.log('[REPLACEMENT] Generated', hunks.length, 'hunks');
+    return hunks;
+  }
+
+  // Tokenize text into words while preserving whitespace
+  tokenizeText(text) {
+    const tokens = [];
+    const regex = /(\s+|[^\s]+)/g;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      tokens.push({
+        text: match[0],
+        isWhitespace: /^\s+$/.test(match[0]),
+        start: match.index,
+        end: match.index + match[0].length
+      });
+    }
+    
+    return tokens;
+  }
+
+  // Compute word-level diff using simple LCS approach
+  computeWordDiff(original, refined) {
+    const hunks = [];
+    let i = 0, j = 0;
+    
+    while (i < original.length || j < refined.length) {
+      // Find common prefix
+      const commonStart = this.findCommonPrefix(original, refined, i, j);
+      i += commonStart;
+      j += commonStart;
+      
+      if (i >= original.length && j >= refined.length) break;
+      
+      // Find deletion
+      const deletion = this.findDeletion(original, refined, i, j);
+      // Find insertion
+      const insertion = this.findInsertion(original, refined, i, j);
+      
+      if (deletion.length > 0 || insertion.length > 0) {
+        hunks.push({
+          type: 'change',
+          originalStart: i,
+          originalEnd: i + deletion.length,
+          refinedStart: j,
+          refinedEnd: j + insertion.length,
+          originalText: deletion.map(t => t.text).join(''),
+          refinedText: insertion.map(t => t.text).join(''),
+          originalTokens: deletion,
+          refinedTokens: insertion
+        });
+        
+        i += deletion.length;
+        j += insertion.length;
+      } else {
+        // No more changes
+        break;
+      }
+    }
+    
+    return hunks;
+  }
+
+  findCommonPrefix(original, refined, startI, startJ) {
+    let count = 0;
+    while (startI + count < original.length && 
+           startJ + count < refined.length && 
+           original[startI + count].text === refined[startJ + count].text) {
+      count++;
+    }
+    return count;
+  }
+
+  findDeletion(original, refined, startI, startJ) {
+    const deletion = [];
+    let i = startI;
+    
+    while (i < original.length) {
+      // Check if this token exists in refined at current position
+      let found = false;
+      for (let j = startJ; j < Math.min(startJ + 3, refined.length); j++) {
+        if (original[i].text === refined[j].text) {
+          found = true;
+          break;
+        }
+      }
+      
+      if (found) break;
+      
+      deletion.push(original[i]);
+      i++;
+    }
+    
+    return deletion;
+  }
+
+  findInsertion(original, refined, startI, startJ) {
+    const insertion = [];
+    let j = startJ;
+    
+    while (j < refined.length) {
+      // Check if this token exists in original at current position
+      let found = false;
+      for (let i = startI; i < Math.min(startI + 3, original.length); i++) {
+        if (refined[j].text === original[i].text) {
+          found = true;
+          break;
+        }
+      }
+      
+      if (found) break;
+      
+      insertion.push(refined[j]);
+      j++;
+    }
+    
+    return insertion;
+  }
+
+  // NEW: Show minimalistic replacement panel
+  showReplacementPanel() {
+    console.log('[REPLACEMENT] showReplacementPanel called');
+    
+    this.hideReplacementPanel(); // Clean up existing panel
+    
+    if (this.originalText === this.refinedText) {
+      console.log('[REPLACEMENT] No changes to show');
+      this.showNotification('No changes detected', 'info');
+      return;
+    }
+    
+    // Create minimalistic replacement panel
+    this.createMinimalReplacementPanel();
+    this.anchorPanelToInput();
+    this.installReplacementShortcuts();
+    
+    console.log('[REPLACEMENT] Minimalistic panel created');
+  }
+
+  // Create ultra-minimalistic replacement panel
+  createMinimalReplacementPanel() {
+    const panel = document.createElement('div');
+    panel.id = 'replacement-panel';
+    panel.innerHTML = `
+      <div class="ultra-minimal-overlay" role="dialog" aria-modal="true" aria-labelledby="refined-text">
+        <div class="refined-text" id="refined-text">${this.escapeHtml(this.refinedText)}</div>
+        <div class="minimal-actions">
+          <button class="minimal-btn reject-btn" id="reject-change" title="Reject (Esc)" aria-label="Reject changes">
+            <span class="btn-icon">✗</span>
+            <span class="btn-text">Esc</span>
+          </button>
+          <button class="minimal-btn accept-btn" id="accept-change" title="Accept (Enter)" aria-label="Accept changes">
+            <span class="btn-icon">✓</span>
+            <span class="btn-text">Enter</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Add ultra-minimalistic styles
+    this.addUltraMinimalStyles();
+
+    document.body.appendChild(panel);
+    this.replacementPanel = panel;
+    
+    // Focus the accept button by default
+    setTimeout(() => {
+      const acceptBtn = panel.querySelector('#accept-change');
+      if (acceptBtn) {
+        acceptBtn.focus();
+      }
+    }, 10);
+    
+    // Add event listeners
+    this.attachMinimalReplacementListeners();
+  }
+
+
+  // Attach minimalistic event listeners
+  attachMinimalReplacementListeners() {
+    if (!this.replacementPanel) return;
+
+    // Accept change
+    this.replacementPanel.querySelector('#accept-change').addEventListener('click', () => {
+      this.applyAll();
+    });
+
+    // Reject change
+    this.replacementPanel.querySelector('#reject-change').addEventListener('click', () => {
+      this.cancelReplacement();
+    });
+
+    console.log('[REPLACEMENT] Ultra-minimalistic panel ready');
+  }
+
+
+  // Apply all changes
+  applyAll() {
+    console.log('[REPLACEMENT] Applying all changes');
+    
+    if (this.currentTextArea && this.refinedText) {
+      this.setTextInElement(this.currentTextArea, this.refinedText);
+      this.showNotification('✓ Changes applied', 'success');
+      
+      // Always place cursor at the end of the text
+      setTimeout(() => {
+        this.restoreSelection(null, 0);
+      }, 10);
+    }
+    
+    this.hideReplacementPanel();
+  }
+
+  // Cancel replacement and restore original
+  cancelReplacement() {
+    console.log('[REPLACEMENT] Cancelling replacement');
+    
+    if (this.currentTextArea && this.originalText) {
+      this.setTextInElement(this.currentTextArea, this.originalText);
+      
+      // Always place cursor at the end of the text
+      setTimeout(() => {
+        this.restoreSelection(null, 0);
+      }, 10);
+    }
+    
+    this.hideReplacementPanel();
+  }
+
+  // Save current text selection
+  saveSelection() {
+    if (!this.currentTextArea) return null;
+    
+    if (this.currentTextArea.tagName === 'TEXTAREA') {
+      return {
+        start: this.currentTextArea.selectionStart,
+        end: this.currentTextArea.selectionEnd
+      };
+    } else if (this.currentTextArea.contentEditable === 'true') {
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        return {
+          range: selection.getRangeAt(0).cloneRange()
+        };
+      }
+    }
+    return null;
+  }
+
+  // Restore text selection - always place cursor at end
+  restoreSelection(selection, textLength) {
+    if (!this.currentTextArea) return;
+    
+    // Always place cursor at the end of the text
+    const finalTextLength = this.currentTextArea.value ? this.currentTextArea.value.length : 
+                           this.currentTextArea.textContent ? this.currentTextArea.textContent.length : 0;
+    
+    if (this.currentTextArea.tagName === 'TEXTAREA') {
+      this.currentTextArea.setSelectionRange(finalTextLength, finalTextLength);
+      this.currentTextArea.focus();
+    } else if (this.currentTextArea.contentEditable === 'true') {
+      // For contenteditable, place cursor at the end
+      const range = document.createRange();
+      const sel = window.getSelection();
+      
+      // Find the last text node
+      const walker = document.createTreeWalker(
+        this.currentTextArea,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+      
+      let lastTextNode = null;
+      let node;
+      while (node = walker.nextNode()) {
+        lastTextNode = node;
+      }
+      
+      if (lastTextNode) {
+        const textLength = lastTextNode.textContent.length;
+        range.setStart(lastTextNode, textLength);
+        range.setEnd(lastTextNode, textLength);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+      
+      this.currentTextArea.focus();
+    }
+  }
+
+  // Hide replacement panel
+  hideReplacementPanel() {
+    if (this.replacementPanel) {
+      this.replacementPanel.remove();
+      this.replacementPanel = null;
+    }
+    
+    this.removeReplacementShortcuts();
+  }
+
+  // Anchor panel to input
+  anchorPanelToInput() {
+    if (!this.replacementPanel || !this.currentTextArea) return;
+
+    const rect = this.currentTextArea.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    const overlayElement = this.replacementPanel.querySelector('.ultra-minimal-overlay');
+    overlayElement.style.position = 'absolute';
+    overlayElement.style.zIndex = '10002';
+    
+    // Position directly above the text area
+    const topPosition = Math.max(10, rect.top + scrollTop - 120);
+    const leftPosition = rect.left + scrollLeft;
+    
+    overlayElement.style.top = `${topPosition}px`;
+    overlayElement.style.left = `${leftPosition}px`;
+    
+    // Ensure it doesn't go off-screen horizontally
+    const panelWidth = 400;
+    const viewportWidth = window.innerWidth;
+    
+    if (leftPosition + panelWidth > viewportWidth - 10) {
+      overlayElement.style.left = `${viewportWidth - panelWidth - 10}px`;
+    }
+    
+    // Ensure it doesn't go off-screen vertically
+    if (topPosition < 10) {
+      // If it would go above the viewport, position it below the text area instead
+      const bottomPosition = rect.bottom + scrollTop + 10;
+      overlayElement.style.top = `${bottomPosition}px`;
+    }
+    
+    // Add scroll listener to reposition on scroll
+    this.scrollListener = () => {
+      this.anchorPanelToInput();
+    };
+    window.addEventListener('scroll', this.scrollListener, { passive: true });
+  }
+
+  // Install minimalistic keyboard shortcuts
+  installReplacementShortcuts() {
+    this.replacementShortcuts = (e) => {
+      if (!this.replacementPanel) return;
+      
+      console.log('[REPLACEMENT] Key pressed:', e.key);
+      
+      switch (e.key) {
+        case 'Enter':
+          e.preventDefault();
+          e.stopPropagation();
+          // Focus and trigger accept button
+          const acceptBtn = this.replacementPanel.querySelector('#accept-change');
+          if (acceptBtn) {
+            acceptBtn.focus();
+            acceptBtn.click();
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          e.stopPropagation();
+          // Focus and trigger reject button
+          const rejectBtn = this.replacementPanel.querySelector('#reject-change');
+          if (rejectBtn) {
+            rejectBtn.focus();
+            rejectBtn.click();
+          }
+          break;
+      }
+    };
+    
+    // Add click outside to dismiss
+    this.clickOutsideListener = (e) => {
+      if (this.replacementPanel && !this.replacementPanel.contains(e.target)) {
+        this.cancelReplacement();
+      }
+    };
+    
+    document.addEventListener('keydown', this.replacementShortcuts);
+    document.addEventListener('click', this.clickOutsideListener);
+  }
+
+  // Remove keyboard shortcuts
+  removeReplacementShortcuts() {
+    if (this.replacementShortcuts) {
+      document.removeEventListener('keydown', this.replacementShortcuts);
+      this.replacementShortcuts = null;
+    }
+    
+    if (this.clickOutsideListener) {
+      document.removeEventListener('click', this.clickOutsideListener);
+      this.clickOutsideListener = null;
+    }
+    
+    if (this.scrollListener) {
+      window.removeEventListener('scroll', this.scrollListener);
+      this.scrollListener = null;
+    }
+  }
+
   // NEW: Show custom instruction box
   showCustomInstructionBox() {
     console.log('[CUSTOM COMMANDS] showCustomInstructionBox called');
@@ -640,10 +1051,9 @@ class ChatRefinementExtension {
           <input type="text" 
                  id="custom-instruction-input" 
                  class="custom-instruction-input" 
-                 placeholder="e.g.write formally, add humor, casual...."
+                 placeholder="e.g - write formally, add humor, be casual..."
                  autocomplete="off"
                  spellcheck="false" />
-          <div class="instruction-hint">Press Enter to refine • Esc to cancel</div>
         </div>
       </div>
     `;
@@ -677,7 +1087,6 @@ class ChatRefinementExtension {
 
     // Add keyboard event listener for the input
     input.addEventListener('keydown', (e) => {
-      console.log('[CUSTOM COMMANDS] Input keydown event:', e.key);
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         console.log('[CUSTOM COMMANDS] Enter pressed, submitting');
@@ -1343,6 +1752,124 @@ class ChatRefinementExtension {
       .btn-minimal:focus {
         outline: 2px solid #007bff;
         outline-offset: 2px;
+      }
+    `;
+
+    document.head.appendChild(styles);
+  }
+
+  // Add ultra-minimalistic styles
+  addUltraMinimalStyles() {
+    if (document.getElementById('ultra-minimal-styles')) return;
+
+    const styles = document.createElement('style');
+    styles.id = 'ultra-minimal-styles';
+    styles.textContent = `
+      #replacement-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10000;
+      }
+
+      .ultra-minimal-overlay {
+        background: rgba(0, 0, 0, 0.85);
+        border-radius: 6px;
+        max-width: 500px;
+        width: fit-content;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        pointer-events: auto;
+        animation: fadeIn 0.15s ease-out;
+        position: absolute;
+        z-index: 10002;
+        color: #ffffff;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .refined-text {
+        color: #ffffff;
+        padding: 12px 16px;
+        font-size: 14px;
+        line-height: 1.4;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+
+      .minimal-actions {
+        display: flex;
+        gap: 8px;
+        padding: 8px 16px 12px 16px;
+        justify-content: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .minimal-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 60px;
+        justify-content: center;
+      }
+
+      .minimal-btn.accept-btn {
+        background: #28a745;
+        color: white;
+      }
+
+      .minimal-btn.accept-btn:hover {
+        background: #218838;
+      }
+
+      .minimal-btn.accept-btn:focus {
+        outline: 2px solid #28a745;
+        outline-offset: 2px;
+      }
+
+      .minimal-btn.reject-btn {
+        background: #dc3545;
+        color: white;
+      }
+
+      .minimal-btn.reject-btn:hover {
+        background: #c82333;
+      }
+
+      .minimal-btn.reject-btn:focus {
+        outline: 2px solid #dc3545;
+        outline-offset: 2px;
+      }
+
+      .btn-icon {
+        font-size: 10px;
+      }
+
+      .btn-text {
+        font-size: 10px;
+        font-weight: 500;
       }
     `;
 
