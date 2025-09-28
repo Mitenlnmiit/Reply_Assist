@@ -6,6 +6,9 @@ class ChatRefinementExtension {
     this.originalText = '';
     this.currentTextArea = null;
     this.popup = null;
+    this.customInstructionBox = null;
+    this.customInstruction = '';
+    this.isCustomCommandMode = false;
     this.init();
   }
 
@@ -74,6 +77,9 @@ class ChatRefinementExtension {
         this.handleRefinementComplete(request.data);
       } else if (request.action === 'refinementError') {
         this.handleRefinementError(request.error);
+      } else if (request.action === 'customCommands') {
+        this.dbg('Received customCommands message from background');
+        this.handleCustomCommands();
       } else if (request.action === 'refinePreview') {
         this.dbg('Received refinePreview message from background');
         this.handleRefinePreview();
@@ -89,19 +95,90 @@ class ChatRefinementExtension {
   }
 
   handleKeyDown(event) {
-    // Check for Alt+X (preview) or Alt+Q (replace)
+    // Check for Alt+X (custom commands) or Alt+Q (replace)
+    console.log('[KEYBOARD] Key pressed:', {
+      key: event.key,
+      alt: event.altKey,
+      ctrl: event.ctrlKey,
+      meta: event.metaKey,
+      shift: event.shiftKey,
+      isCustomCommandMode: this.isCustomCommandMode,
+      hasCustomBox: !!this.customInstructionBox
+    });
+    
     this.dbg('keydown', { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey, alt: event.altKey, key: event.key });
+    
+    // Handle custom instruction box keyboard events
+    if (this.isCustomCommandMode && this.customInstructionBox) {
+      console.log('[KEYBOARD] In custom command mode, handling input events');
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        console.log('[KEYBOARD] Enter pressed in custom command mode');
+        this.handleCustomInstructionSubmit();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        console.log('[KEYBOARD] Escape pressed in custom command mode');
+        this.hideCustomInstructionBox();
+      }
+      return; // Don't process other shortcuts when in custom command mode
+    }
+    
     if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+      console.log('[KEYBOARD] Alt key combination detected');
       if (event.key === 'x' || event.key === 'X') {
         event.preventDefault();
-        this.dbg('shortcut detected: preview (Alt+X)');
-        this.handleRefinePreview();
+        console.log('[KEYBOARD] Alt+X detected, calling handleCustomCommands');
+        this.dbg('shortcut detected: custom commands (Alt+X)');
+        this.handleCustomCommands();
       } else if (event.key === 'q' || event.key === 'Q') {
         event.preventDefault();
+        console.log('[KEYBOARD] Alt+Q detected, calling handleRefineReplace');
         this.dbg('shortcut detected: replace (Alt+Q)');
         this.handleRefineReplace();
       }
     }
+  }
+
+  // NEW: Handle custom commands (replaces old preview)
+  async handleCustomCommands() {
+    console.log('[CUSTOM COMMANDS] handleCustomCommands called');
+    
+    if (this.isProcessing) {
+      console.log('[CUSTOM COMMANDS] Already processing, returning');
+      return;
+    }
+    
+    // Check if extension context is still valid
+    if (!this.isExtensionContextValid()) {
+      console.log('[CUSTOM COMMANDS] Extension context invalid');
+      this.showNotification('Extension was reloaded. Please refresh the page to continue.', 'error');
+      return;
+    }
+    
+    const textArea = this.getActiveTextArea();
+    console.log('[CUSTOM COMMANDS] Active text area found:', !!textArea, textArea);
+    this.dbg('custom commands: active text area found:', !!textArea);
+    if (!textArea) {
+      console.log('[CUSTOM COMMANDS] No text area found');
+      this.showNotification('No text area found. Click in a text input field first.', 'error');
+      return;
+    }
+
+    const draftText = this.getTextFromElement(textArea);
+    console.log('[CUSTOM COMMANDS] Draft text length:', draftText.length, 'Preview:', this.truncate(draftText, 200));
+    this.dbg('custom commands: draft length:', draftText.length, 'preview:', this.truncate(draftText, 200));
+    if (!draftText.trim()) {
+      console.log('[CUSTOM COMMANDS] No draft text found');
+      this.showNotification('No draft text found. Type something first.', 'error');
+      return;
+    }
+
+    this.currentTextArea = textArea;
+    this.originalText = draftText;
+    
+    console.log('[CUSTOM COMMANDS] About to show custom instruction box');
+    // Show custom instruction box
+    this.showCustomInstructionBox();
   }
 
   async handleRefinePreview() {
@@ -231,6 +308,8 @@ class ChatRefinementExtension {
       this.showInlineTextHighlighting(); // Use ultra-minimal inline highlighting
     } else if (data.action === 'replace') {
       this.replaceText();
+    } else if (data.action === 'custom') {
+      this.showInlineTextHighlighting(); // Show custom instruction result
     }
   }
 
@@ -544,6 +623,191 @@ class ChatRefinementExtension {
   estimateTokens(text) {
     // Rough estimation: 1 token ≈ 4 characters for English
     return Math.ceil(text.length / 4);
+  }
+
+  // NEW: Show custom instruction box
+  showCustomInstructionBox() {
+    console.log('[CUSTOM COMMANDS] showCustomInstructionBox called');
+    
+    this.hideCustomInstructionBox(); // Remove existing box
+
+    const instructionBox = document.createElement('div');
+    instructionBox.id = 'custom-instruction-box';
+    instructionBox.innerHTML = `
+      <div class="custom-instruction-overlay">
+        <div class="custom-instruction-content">
+          <div class="instruction-label">Custom Instructions:</div>
+          <input type="text" 
+                 id="custom-instruction-input" 
+                 class="custom-instruction-input" 
+                 placeholder="e.g.write formally, add humor, casual...."
+                 autocomplete="off"
+                 spellcheck="false" />
+          <div class="instruction-hint">Press Enter to refine • Esc to cancel</div>
+        </div>
+      </div>
+    `;
+
+    console.log('[CUSTOM COMMANDS] Created instruction box HTML');
+
+    // Add custom instruction styles
+    this.addCustomInstructionStyles();
+    console.log('[CUSTOM COMMANDS] Added custom instruction styles');
+
+    // Position the box above the text area
+    this.positionCustomInstructionBox(instructionBox);
+    console.log('[CUSTOM COMMANDS] Positioned instruction box');
+
+    document.body.appendChild(instructionBox);
+    console.log('[CUSTOM COMMANDS] Appended instruction box to body');
+    
+    this.customInstructionBox = instructionBox;
+    this.isCustomCommandMode = true;
+    console.log('[CUSTOM COMMANDS] Set custom command mode to true');
+
+    // Focus the input immediately
+    const input = instructionBox.querySelector('#custom-instruction-input');
+    console.log('[CUSTOM COMMANDS] Found input element:', !!input);
+    
+    setTimeout(() => {
+      console.log('[CUSTOM COMMANDS] Focusing input');
+      input.focus();
+      input.select();
+    }, 10);
+
+    // Add keyboard event listener for the input
+    input.addEventListener('keydown', (e) => {
+      console.log('[CUSTOM COMMANDS] Input keydown event:', e.key);
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        console.log('[CUSTOM COMMANDS] Enter pressed, submitting');
+        this.handleCustomInstructionSubmit();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        console.log('[CUSTOM COMMANDS] Escape pressed, hiding box');
+        this.hideCustomInstructionBox();
+      }
+    });
+    
+    console.log('[CUSTOM COMMANDS] showCustomInstructionBox completed');
+  }
+
+  // NEW: Handle custom instruction submission
+  async handleCustomInstructionSubmit() {
+    console.log('[CUSTOM COMMANDS] handleCustomInstructionSubmit called');
+    
+    const input = this.customInstructionBox.querySelector('#custom-instruction-input');
+    const customInstruction = input.value.trim();
+    
+    console.log('[CUSTOM COMMANDS] Custom instruction:', customInstruction);
+    
+    if (!customInstruction) {
+      console.log('[CUSTOM COMMANDS] No custom instruction provided');
+      this.showNotification('Please enter a custom instruction', 'error');
+      return;
+    }
+
+    this.customInstruction = customInstruction;
+    this.isProcessing = true;
+    this.hideCustomInstructionBox();
+    console.log('[CUSTOM COMMANDS] Hidden instruction box, starting processing');
+
+    try {
+      // Get conversation history
+      const conversationHistory = this.extractConversationHistory();
+      console.log('[CUSTOM COMMANDS] Extracted conversation history:', conversationHistory.length, 'messages');
+      
+      // Send to background script for API call with custom instruction
+      try {
+        console.log('[CUSTOM COMMANDS] Sending message to background script');
+        chrome.runtime.sendMessage({
+          action: 'refineText',
+          data: {
+            draftText: this.originalText,
+            conversationHistory: conversationHistory,
+            customInstruction: customInstruction,
+            action: 'custom' // Custom instruction mode
+          }
+        });
+        console.log('[CUSTOM COMMANDS] Message sent to background script');
+      } catch (error) {
+        console.error('[CUSTOM COMMANDS] Error sending message to background:', error);
+        if (error.message.includes('Extension context invalidated')) {
+          this.showNotification('Extension was reloaded. Please refresh the page to continue.', 'error');
+        } else {
+          this.showNotification('Extension communication error. Please reload the page.', 'error');
+        }
+        this.isProcessing = false;
+      }
+
+      this.showNotification(`Refining with custom instruction: "${customInstruction}"...`, 'info');
+    } catch (error) {
+      console.error('[CUSTOM COMMANDS] Error in custom instruction:', error);
+      this.showNotification('Error: ' + error.message, 'error');
+      this.isProcessing = false;
+    }
+  }
+
+  // NEW: Hide custom instruction box
+  hideCustomInstructionBox() {
+    console.log('[CUSTOM COMMANDS] hideCustomInstructionBox called');
+    if (this.customInstructionBox) {
+      console.log('[CUSTOM COMMANDS] Removing custom instruction box');
+      this.customInstructionBox.remove();
+      this.customInstructionBox = null;
+    }
+    this.isCustomCommandMode = false;
+    console.log('[CUSTOM COMMANDS] Custom command mode set to false');
+  }
+
+  // NEW: Position custom instruction box above text area
+  positionCustomInstructionBox(instructionBox) {
+    console.log('[CUSTOM COMMANDS] positionCustomInstructionBox called');
+    
+    if (!this.currentTextArea) {
+      console.log('[CUSTOM COMMANDS] No current text area, cannot position');
+      return;
+    }
+
+    const rect = this.currentTextArea.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    console.log('[CUSTOM COMMANDS] Text area rect:', rect);
+    console.log('[CUSTOM COMMANDS] Scroll position:', { scrollTop, scrollLeft });
+
+    // Position above the text input
+    const overlayElement = instructionBox.querySelector('.custom-instruction-overlay');
+    overlayElement.style.position = 'absolute';
+    overlayElement.style.zIndex = '10001';
+    
+    // Calculate position to place it above the text area
+    const topPosition = Math.max(10, rect.top + scrollTop - 80); // Position 80px above the text area
+    const leftPosition = rect.left + scrollLeft;
+    
+    overlayElement.style.top = `${topPosition}px`;
+    overlayElement.style.left = `${leftPosition}px`;
+    
+    console.log('[CUSTOM COMMANDS] Positioned at:', { topPosition, leftPosition });
+    
+    // Ensure it doesn't go off-screen horizontally
+    const overlayWidth = 400; // Approximate width
+    const viewportWidth = window.innerWidth;
+    const rightEdge = leftPosition + overlayWidth;
+    
+    if (rightEdge > viewportWidth - 10) {
+      const newLeftPosition = viewportWidth - overlayWidth - 10;
+      overlayElement.style.left = `${newLeftPosition}px`;
+      console.log('[CUSTOM COMMANDS] Adjusted left position to:', newLeftPosition);
+    }
+    
+    // Ensure it doesn't go off-screen vertically
+    if (topPosition < 10) {
+      // If it would go above the viewport, position it below the text area instead
+      const bottomPosition = rect.bottom + scrollTop + 10;
+      overlayElement.style.top = `${bottomPosition}px`;
+      console.log('[CUSTOM COMMANDS] Adjusted to position below text area:', bottomPosition);
+    }
   }
 
   showRefinementPopup() {
@@ -1079,6 +1343,90 @@ class ChatRefinementExtension {
       .btn-minimal:focus {
         outline: 2px solid #007bff;
         outline-offset: 2px;
+      }
+    `;
+
+    document.head.appendChild(styles);
+  }
+
+  // Add custom instruction styles
+  addCustomInstructionStyles() {
+    if (document.getElementById('custom-instruction-styles')) return;
+
+    const styles = document.createElement('style');
+    styles.id = 'custom-instruction-styles';
+    styles.textContent = `
+      #custom-instruction-box {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10000;
+      }
+
+      .custom-instruction-overlay {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        min-width: 300px;
+        width: fit-content;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        pointer-events: auto;
+        animation: slideInFromTop 0.2s ease-out;
+        position: absolute;
+        z-index: 10001;
+      }
+
+      @keyframes slideInFromTop {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .custom-instruction-content {
+        padding: 12px;
+      }
+
+      .instruction-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .custom-instruction-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 2px solid #007bff;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+      }
+
+      .custom-instruction-input:focus {
+        border-color: #0056b3;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      }
+
+      .instruction-hint {
+        font-size: 11px;
+        color: #666;
+        margin-top: 4px;
+        text-align: center;
       }
     `;
 

@@ -58,31 +58,39 @@ class ChatRefinementBackground {
   }
 
   async handleRefineText(data, tabId) {
+    console.log('[BACKGROUND] handleRefineText called with data:', data);
+    console.log('[BACKGROUND] Tab ID:', tabId);
+    
     try {
       // Get API key from storage
       const result = await chrome.storage.sync.get(['geminiApiKey']);
       const apiKey = result.geminiApiKey;
 
       if (!apiKey) {
+        console.log('[BACKGROUND] No API key found');
         this.sendErrorToContent(tabId, 'API key not configured. Please set your Gemini API key in extension options.');
         return;
       }
 
+      console.log('[BACKGROUND] API key found, building prompt');
       // Build the prompt
-      const prompt = this.buildPrompt(data.draftText, data.conversationHistory);
+      const prompt = this.buildPrompt(data.draftText, data.conversationHistory, data.customInstruction);
       
       // Log the complete prompt being sent to Gemini
       console.log('=== PROMPT SENT TO GEMINI ===');
       console.log(prompt.contents[0].parts[0].text);
       console.log('=============================');
       
+      console.log('[BACKGROUND] Calling Gemini API');
       // Call Gemini API
       const refinedText = await this.callGeminiAPI(apiKey, prompt);
+      console.log('[BACKGROUND] Gemini API response received, length:', (refinedText || '').length);
       this.dbg('response length', (refinedText || '').length, 'preview:', (refinedText || '').slice(0, 300) + (refinedText && refinedText.length > 300 ? '…' : ''));
       
       // Send response back to content script
       if (tabId) {
         try {
+          console.log('[BACKGROUND] Sending refinementComplete message to tab:', tabId);
           chrome.tabs.sendMessage(tabId, {
             action: 'refinementComplete',
             data: {
@@ -90,16 +98,17 @@ class ChatRefinementBackground {
               action: data.action || 'preview' // Use the action from the request
             }
           });
+          console.log('[BACKGROUND] Message sent successfully');
           this.dbg('sent refinementComplete back to tab', tabId);
         } catch (error) {
-          console.error('Error sending success message to content script:', error);
+          console.error('[BACKGROUND] Error sending success message to content script:', error);
         }
       } else {
-        console.error('No tab ID available for sending success message');
+        console.error('[BACKGROUND] No tab ID available for sending success message');
       }
 
     } catch (error) {
-      console.error('Error in background script:', error);
+      console.error('[BACKGROUND] Error in background script:', error);
       this.sendErrorToContent(tabId, error.message);
     }
   }
@@ -139,12 +148,12 @@ class ChatRefinementBackground {
     this.dbg('Command received:', command);
     
     if (command === 'refine-preview') {
-      this.dbg('Handling refine-preview command');
-      // Get active tab and send message to content script
+      this.dbg('Handling custom commands (refine-preview)');
+      // Get active tab and send message to content script for custom commands
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
-        this.dbg('Sending refinePreview message to tab:', tab.id);
-        chrome.tabs.sendMessage(tab.id, { action: 'refinePreview' });
+        this.dbg('Sending customCommands message to tab:', tab.id);
+        chrome.tabs.sendMessage(tab.id, { action: 'customCommands' });
       } else {
         this.dbg('No active tab found');
       }
@@ -163,7 +172,7 @@ class ChatRefinementBackground {
     }
   }
 
-  buildPrompt(draftText, conversationHistory) {
+  buildPrompt(draftText, conversationHistory, customInstruction = '') {
     const systemPrompt = `<System Prompt>
 You are a writing refinement assistant. 
 Your only task is to take user-written text and refine it so it becomes:
@@ -189,7 +198,13 @@ You must never add new ideas, facts, or content that wasn't in the user text.
       });
     }
 
-    const userPrompt = `${conversationText}\n<My Draft>${draftText}</My Draft>`;
+    // Add custom instruction section if provided
+    let customInstructionSection = '';
+    if (customInstruction && customInstruction.trim()) {
+      customInstructionSection = `\n<Custom Instruction>\n${customInstruction.trim()}\n</Custom Instruction>`;
+    }
+
+    const userPrompt = `${conversationText}\n<My Draft>${draftText}</My Draft>${customInstructionSection}`;
 
     return {
       contents: [{

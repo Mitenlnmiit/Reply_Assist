@@ -65,7 +65,7 @@ Reply_Assist/
 - **Chrome Storage API**: Secure storage for API keys and settings
 
 ### API Integration
-- **Google Gemini 1.5 Flash**: Fast, free model for text refinement
+- **Google Gemini 2.5 Flash Lite**: Fast, free model for text refinement
 - **REST API**: Direct communication with Google's API
 - **Error Handling**: Comprehensive error management and user feedback
 

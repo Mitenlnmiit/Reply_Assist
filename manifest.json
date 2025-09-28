@@ -33,7 +33,7 @@
         "default": "Alt+X",
         "mac": "Alt+X"
       },
-      "description": "Show refined reply preview"
+      "description": "Custom instruction refinement"
     },
     "refine-replace": {
       "suggested_key": {
