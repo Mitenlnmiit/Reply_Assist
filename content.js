@@ -315,9 +315,45 @@ class ChatRefinementExtension {
   getActiveTextArea() {
     const activeElement = document.activeElement;
     
+    // Debug logging
+    this.dbg('getActiveTextArea called');
+    this.dbg('activeElement:', activeElement?.tagName, activeElement?.className, activeElement?.id);
+    
     // Check if active element is a text input
     if (this.isTextInput(activeElement)) {
+      this.dbg('Active element is text input');
       return activeElement;
+    }
+
+    // Reddit-specific selectors first
+    const redditSelectors = [
+      // Reddit post title input (contenteditable div)
+      '[placeholder*="Title"]',
+      '[placeholder*="title"]',
+      '.public-DraftEditor-content',
+      '.DraftEditor-editorContainer [contenteditable="true"]',
+      'div[name="title"]',
+      'div[data-contents="true"]',
+      // Reddit comment/text editor
+      '.md-container textarea',
+      '.usertext-edit textarea',
+      'div[role="textbox"][contenteditable="true"]',
+      '[data-test-id="comment-composer"]',
+      // New Reddit selectors
+      '[data-testid="post-title"]',
+      'div[contenteditable="true"][spellcheck]',
+      'div[contenteditable="true"][data-lexical-editor="true"]'
+    ];
+
+    // Try Reddit selectors first
+    for (const selector of redditSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        this.dbg('Found Reddit element with selector:', selector);
+        if (this.isTextInput(element)) {
+          return element;
+        }
+      }
     }
 
     // Look for common text input selectors
@@ -338,10 +374,12 @@ class ChatRefinementExtension {
     for (const selector of textInputSelectors) {
       const element = document.querySelector(selector);
       if (element && this.isTextInput(element)) {
+        this.dbg('Found element with generic selector:', selector);
         return element;
       }
     }
 
+    this.dbg('No text area found');
     return null;
   }
 
@@ -351,43 +389,125 @@ class ChatRefinementExtension {
     const tagName = element.tagName.toLowerCase();
     const type = element.type ? element.type.toLowerCase() : '';
     
+    // Debug logging
+    this.dbg('isTextInput check:', {
+      tagName,
+      type,
+      contentEditable: element.contentEditable,
+      role: element.getAttribute('role'),
+      placeholder: element.getAttribute('placeholder'),
+      className: element.className
+    });
+    
+    // Check for Reddit-specific contenteditable divs
+    const isRedditTitle = element.getAttribute('placeholder')?.toLowerCase().includes('title');
+    const isDraftEditor = element.className?.includes('DraftEditor') || 
+                         element.className?.includes('public-DraftEditor');
+    const isLexicalEditor = element.getAttribute('data-lexical-editor') === 'true';
+    
     return (
       tagName === 'textarea' ||
-      (tagName === 'input' && ['text', 'email', 'search'].includes(type)) ||
+      (tagName === 'input' && ['text', 'email', 'search', ''].includes(type)) ||
       element.contentEditable === 'true' ||
-      element.getAttribute('role') === 'textbox'
+      element.getAttribute('role') === 'textbox' ||
+      isRedditTitle ||
+      isDraftEditor ||
+      isLexicalEditor
     );
   }
 
   getTextFromElement(element) {
-    if (element.contentEditable === 'true' || element.contentEditable === '') {
-      return element.innerText || element.textContent || '';
+    this.dbg('getTextFromElement called for:', element.tagName, element.className);
+    
+    // For Reddit's Draft.js editor or similar
+    if (element.className?.includes('DraftEditor') || 
+        element.className?.includes('public-DraftEditor')) {
+      const text = element.innerText || element.textContent || '';
+      this.dbg('Got text from Draft.js editor:', this.truncate(text, 100));
+      return text;
     }
-    return element.value || '';
+    
+    if (element.contentEditable === 'true' || element.contentEditable === '') {
+      const text = element.innerText || element.textContent || '';
+      this.dbg('Got text from contentEditable:', this.truncate(text, 100));
+      return text;
+    }
+    
+    const text = element.value || '';
+    this.dbg('Got text from value:', this.truncate(text, 100));
+    return text;
   }
 
   setTextInElement(element, text) {
+    this.dbg('setTextInElement called with text length:', text.length);
+    this.dbg('Element details:', {
+      tagName: element.tagName,
+      className: element.className,
+      contentEditable: element.contentEditable
+    });
+    
     if (element.contentEditable === 'true' || element.contentEditable === '') {
-      element.innerText = text;
-      element.textContent = text;
+      // For Reddit's Draft.js or Lexical editors, we need to be more careful
+      const isDraftEditor = element.className?.includes('DraftEditor') || 
+                           element.className?.includes('public-DraftEditor');
+      const isLexicalEditor = element.getAttribute('data-lexical-editor') === 'true';
+      
+      if (isDraftEditor || isLexicalEditor) {
+        this.dbg('Detected Reddit editor, using special handling');
+        
+        // Clear existing content first
+        element.innerHTML = '';
+        
+        // Create text node and append
+        const textNode = document.createTextNode(text);
+        element.appendChild(textNode);
+        
+        // Trigger React/Draft.js update events
+        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+        const blurEvent = new Event('blur', { bubbles: true, cancelable: true });
+        const focusEvent = new Event('focus', { bubbles: true, cancelable: true });
+        
+        element.dispatchEvent(focusEvent);
+        element.dispatchEvent(inputEvent);
+        element.dispatchEvent(changeEvent);
+        
+        // Also try updating via execCommand for contenteditable
+        element.focus();
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, text);
+        
+        this.dbg('Text set via Reddit editor special handling');
+      } else {
+        // Standard contenteditable handling
+        element.innerText = text;
+        element.textContent = text;
+        this.dbg('Text set via standard contenteditable');
+      }
       
       // Position cursor at the end of the text
       const selection = window.getSelection();
       const range = document.createRange();
       const textNode = element.firstChild;
       if (textNode) {
-        const endOffset = textNode.length;
-        range.setStart(textNode, endOffset);
-        range.setEnd(textNode, endOffset);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        const endOffset = textNode.textContent ? textNode.textContent.length : textNode.length;
+        try {
+          range.setStart(textNode, endOffset);
+          range.setEnd(textNode, endOffset);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } catch (e) {
+          this.dbg('Error setting cursor position:', e);
+        }
       }
       
       // Trigger input event for React/Vue components
       const event = new Event('input', { bubbles: true });
       element.dispatchEvent(event);
     } else {
+      // Regular input/textarea
       element.value = text;
+      this.dbg('Text set via value property');
       
       // Position cursor at the end of the text
       const endPosition = text.length;
@@ -406,9 +526,32 @@ class ChatRefinementExtension {
 
     // Debug: start log group
     this.dbgGroup('Scanning conversation history');
+    
+    // Detect if we're on Reddit
+    const isReddit = window.location.hostname.includes('reddit.com');
+    this.dbg('Platform detected - Reddit:', isReddit);
+
+    // Reddit-specific selectors
+    const redditSelectors = [
+      // Comments in thread
+      '[data-testid="comment"]',
+      '.Comment',
+      '.thing.comment',
+      'div[id^="t1_"]', // Reddit comment IDs
+      '.usertext-body',
+      '[data-click-id="text"]',
+      // Post content
+      '[data-test-id="post-content"]',
+      '.Post',
+      'div[id^="t3_"]', // Reddit post IDs
+      // New Reddit selectors
+      'div[style*="max-height"][tabindex]',
+      '[data-scroller-first]',
+      '[data-scroller-last]'
+    ];
 
     // Common selectors for chat messages
-    const messageSelectors = [
+    const messageSelectors = isReddit ? redditSelectors : [
       '.message',
       '.msg',
       '.chat-message',
@@ -439,16 +582,31 @@ class ChatRefinementExtension {
     ];
 
     const messages = [];
+    const processedElements = new Set(); // Avoid duplicates
     
     for (const selector of messageSelectors) {
       const elements = document.querySelectorAll(selector);
+      this.dbg(`Selector '${selector}' found ${elements.length} elements`);
+      
       elements.forEach(el => {
+        // Skip if already processed
+        if (processedElements.has(el)) return;
+        processedElements.add(el);
+        
         const text = this.extractMessageText(el);
-        if (text && text.trim()) {
-          messages.push({
+        if (text && text.trim() && text.trim().length > 5) { // Skip very short texts
+          const message = {
             element: el,
             text: text.trim(),
-            timestamp: this.extractTimestamp(el)
+            timestamp: this.extractTimestamp(el),
+            author: this.extractAuthor(el)
+          };
+          messages.push(message);
+          
+          this.dbg('Found message:', {
+            selector,
+            textPreview: this.truncate(message.text, 100),
+            author: message.author
           });
         }
       });
@@ -523,6 +681,30 @@ class ChatRefinementExtension {
   }
 
   extractMessageText(element) {
+    // Reddit-specific text extraction
+    if (window.location.hostname.includes('reddit.com')) {
+      // For Reddit comments/posts
+      const redditTextSelectors = [
+        '.md',  // Markdown content
+        '.usertext-body',
+        '[data-click-id="text"]',
+        'div[data-testid="comment"]',
+        'p' // Paragraph tags in comments
+      ];
+      
+      for (const selector of redditTextSelectors) {
+        const textEl = selector === element.tagName.toLowerCase() ? 
+                       element : element.querySelector(selector);
+        if (textEl) {
+          const text = textEl.innerText || textEl.textContent || '';
+          if (text.trim()) {
+            this.dbg('Reddit text extracted via:', selector, 'length:', text.length);
+            return text;
+          }
+        }
+      }
+    }
+    
     // Try to get clean text content
     const textSelectors = [
       '.message-text',
@@ -578,7 +760,57 @@ class ChatRefinementExtension {
     return null;
   }
 
+  // Extract author name from element (Reddit-specific)
+  extractAuthor(element) {
+    if (!window.location.hostname.includes('reddit.com')) return null;
+    
+    const authorSelectors = [
+      'a[data-testid="comment_author_link"]',
+      'a[data-testid="post_author_link"]',
+      '.author',
+      'a[href*="/user/"]',
+      '[data-author]'
+    ];
+    
+    for (const selector of authorSelectors) {
+      const authorEl = element.querySelector(selector);
+      if (authorEl) {
+        const author = authorEl.textContent?.trim() || 
+                      authorEl.getAttribute('data-author') || 
+                      authorEl.href?.split('/user/')[1]?.split(/[/?]/)[0];
+        if (author) {
+          this.dbg('Author found:', author);
+          return author;
+        }
+      }
+    }
+    
+    return null;
+  }
+
   isFromUser(element) {
+    // Reddit-specific: check if comment is from current user
+    if (window.location.hostname.includes('reddit.com')) {
+      // Check for edit button (only appears on user's own comments)
+      const hasEditButton = element.querySelector('.edit-usertext') || 
+                           element.querySelector('[data-test-id="comment-edit-button"]');
+      if (hasEditButton) {
+        this.dbg('Message identified as from user (has edit button)');
+        return true;
+      }
+      
+      // Check username match
+      const currentUserEl = document.querySelector('.user a.user') || 
+                           document.querySelector('[data-testid="user-drawer-username"]');
+      const currentUser = currentUserEl?.textContent?.trim();
+      const messageAuthor = this.extractAuthor(element);
+      
+      if (currentUser && messageAuthor && currentUser === messageAuthor) {
+        this.dbg('Message identified as from user (username match):', currentUser);
+        return true;
+      }
+    }
+    
     // Common indicators that a message is from the current user
     const userIndicators = [
       '.sent',
@@ -799,16 +1031,21 @@ class ChatRefinementExtension {
     document.body.appendChild(panel);
     this.replacementPanel = panel;
     
-    // Focus the accept button by default
+    // Focus the panel itself for keyboard events
     setTimeout(() => {
-      const acceptBtn = panel.querySelector('#accept-change');
-      if (acceptBtn) {
-        acceptBtn.focus();
-      }
+      // Set tabindex to make panel focusable
+      panel.setAttribute('tabindex', '-1');
+      panel.focus();
+      this.dbg('Panel focused for keyboard shortcuts');
     }, 10);
     
     // Add event listeners
     this.attachMinimalReplacementListeners();
+    
+    // Focus management to ensure keyboard shortcuts work
+    this.replacementPanel.addEventListener('keydown', (e) => {
+      e.stopPropagation(); // Prevent bubbling to avoid conflicts
+    });
   }
 
 
@@ -833,15 +1070,37 @@ class ChatRefinementExtension {
   // Apply all changes
   applyAll() {
     console.log('[REPLACEMENT] Applying all changes');
+    this.dbg('applyAll called with:', {
+      hasTextArea: !!this.currentTextArea,
+      refinedTextLength: this.refinedText?.length,
+      elementType: this.currentTextArea?.tagName,
+      elementClass: this.currentTextArea?.className
+    });
     
     if (this.currentTextArea && this.refinedText) {
-      this.setTextInElement(this.currentTextArea, this.refinedText);
-      this.showNotification('✓ Changes applied', 'success');
+      // Store original for debugging
+      const originalContent = this.getTextFromElement(this.currentTextArea);
+      this.dbg('Original content before replace:', this.truncate(originalContent, 100));
       
-      // Always place cursor at the end of the text
+      this.setTextInElement(this.currentTextArea, this.refinedText);
+      
+      // Verify the change
       setTimeout(() => {
+        const newContent = this.getTextFromElement(this.currentTextArea);
+        this.dbg('Content after replace:', this.truncate(newContent, 100));
+        
+        if (newContent === this.refinedText) {
+          this.showNotification('✓ Changes applied', 'success');
+        } else {
+          this.dbg('WARNING: Content mismatch after setting!');
+          this.dbg('Expected:', this.truncate(this.refinedText, 100));
+          this.dbg('Got:', this.truncate(newContent, 100));
+        }
+        
         this.restoreSelection(null, 0);
-      }, 10);
+      }, 50);
+    } else {
+      this.dbg('ERROR: Missing currentTextArea or refinedText');
     }
     
     this.hideReplacementPanel();
@@ -981,28 +1240,35 @@ class ChatRefinementExtension {
     this.replacementShortcuts = (e) => {
       if (!this.replacementPanel) return;
       
-      console.log('[REPLACEMENT] Key pressed:', e.key);
+      console.log('[REPLACEMENT] Key pressed:', e.key, 'Target:', e.target.tagName, e.target.id);
+      
+      // Don't handle if user is typing in an input field (except our panel buttons)
+      const isInPanel = this.replacementPanel.contains(e.target);
+      const isButton = e.target.tagName === 'BUTTON';
+      
+      if (!isInPanel && !isButton) {
+        this.dbg('Key event not from panel, ignoring');
+        // Still allow keyboard shortcuts from outside
+      }
       
       switch (e.key) {
         case 'Enter':
           e.preventDefault();
           e.stopPropagation();
-          // Focus and trigger accept button
-          const acceptBtn = this.replacementPanel.querySelector('#accept-change');
-          if (acceptBtn) {
-            acceptBtn.focus();
-            acceptBtn.click();
-          }
+          e.stopImmediatePropagation(); // Stop all propagation
+          
+          this.dbg('[REPLACEMENT] Enter key detected, calling applyAll');
+          // Directly call applyAll instead of clicking button
+          this.applyAll();
           break;
         case 'Escape':
           e.preventDefault();
           e.stopPropagation();
-          // Focus and trigger reject button
-          const rejectBtn = this.replacementPanel.querySelector('#reject-change');
-          if (rejectBtn) {
-            rejectBtn.focus();
-            rejectBtn.click();
-          }
+          e.stopImmediatePropagation(); // Stop all propagation
+          
+          this.dbg('[REPLACEMENT] Escape key detected, calling cancelReplacement');
+          // Directly call cancelReplacement instead of clicking button
+          this.cancelReplacement();
           break;
       }
     };
@@ -1014,14 +1280,15 @@ class ChatRefinementExtension {
       }
     };
     
-    document.addEventListener('keydown', this.replacementShortcuts);
+    // Use capture phase for keyboard events to intercept them early
+    document.addEventListener('keydown', this.replacementShortcuts, true);
     document.addEventListener('click', this.clickOutsideListener);
   }
 
   // Remove keyboard shortcuts
   removeReplacementShortcuts() {
     if (this.replacementShortcuts) {
-      document.removeEventListener('keydown', this.replacementShortcuts);
+      document.removeEventListener('keydown', this.replacementShortcuts, true); // Remove from capture phase
       this.replacementShortcuts = null;
     }
     

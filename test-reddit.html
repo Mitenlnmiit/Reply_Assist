@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit-like Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #DAE0E6;
+        }
+        
+        .reddit-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1A1A1B;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        
+        /* Reddit-style title input */
+        .reddit-title {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #F6F7F8;
+            margin-bottom: 15px;
+            min-height: 40px;
+            outline: none;
+        }
+        
+        .reddit-title:focus {
+            background: white;
+            border-color: #0079D3;
+        }
+        
+        /* Reddit-style contenteditable div (like their title editor) */
+        .DraftEditor-editorContainer {
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 40px;
+            background: #F6F7F8;
+            margin-bottom: 15px;
+        }
+        
+        .DraftEditor-editorContainer:focus-within {
+            background: white;
+            border-color: #0079D3;
+        }
+        
+        .public-DraftEditor-content {
+            min-height: 20px;
+            outline: none;
+        }
+        
+        /* Reddit comment section mockup */
+        .comment-section {
+            margin-top: 30px;
+        }
+        
+        .comment {
+            border-left: 2px solid #EDEFF1;
+            padding-left: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .comment-author {
+            font-size: 12px;
+            color: #7c7c7d;
+            margin-bottom: 5px;
+        }
+        
+        .comment-author .author {
+            color: #0079D3;
+            font-weight: 500;
+        }
+        
+        .usertext-body {
+            color: #1A1A1B;
+            line-height: 1.5;
+        }
+        
+        .md {
+            margin-top: 5px;
+        }
+        
+        /* Reply box */
+        .reply-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #F6F7F8;
+            border-radius: 4px;
+        }
+        
+        .usertext-edit textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        .test-info {
+            background: #FFF4E6;
+            border: 1px solid #FFD700;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .test-info h2 {
+            margin-top: 0;
+            color: #FF8C00;
+            font-size: 16px;
+        }
+        
+        .test-info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .test-info li {
+            margin: 5px 0;
+        }
+        
+        .shortcut {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        [data-lexical-editor="true"] {
+            min-height: 40px;
+            padding: 10px;
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            background: #F6F7F8;
+            outline: none;
+        }
+        
+        [data-lexical-editor="true"]:focus {
+            background: white;
+            border-color: #0079D3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <h2>🧪 Reddit-like Test Page</h2>
+        <p>This page simulates Reddit's input elements to test the extension fixes:</p>
+        <ul>
+            <li>Click in any text field below</li>
+            <li>Type some text to refine</li>
+            <li>Press <span class="shortcut">Alt+Q</span> for quick refinement with replacement</li>
+            <li>Press <span class="shortcut">Alt+X</span> for custom refinement instructions</li>
+            <li>When the replacement UI appears, press <span class="shortcut">Enter</span> to accept or <span class="shortcut">Esc</span> to reject</li>
+        </ul>
+    </div>
+    
+    <div class="reddit-container">
+        <h1>Create a post</h1>
+        
+        <!-- Standard input (old Reddit style) -->
+        <input type="text" 
+               class="reddit-title" 
+               placeholder="Title">
+        
+        <!-- ContentEditable div (new Reddit Draft.js style) -->
+        <div class="DraftEditor-editorContainer">
+            <div class="public-DraftEditor-content" 
+                 contenteditable="true" 
+                 role="textbox"
+                 placeholder="Title"
+                 spellcheck="true">hye ths is sample test to chcehk if the extinesion is wroking or nto.</div>
+        </div>
+        
+        <!-- Lexical editor style (newest Reddit) -->
+        <div contenteditable="true"
+             data-lexical-editor="true"
+             role="textbox"
+             spellcheck="true"
+             placeholder="Post Text (Optional)">This is anohter test wiht some typos to see if the refinemnt works proprely.</div>
+    </div>
+    
+    <div class="reddit-container comment-section">
+        <h1>Comments</h1>
+        
+        <!-- Mock comments for context extraction testing -->
+        <div class="comment" data-testid="comment" id="t1_abc123">
+            <div class="comment-author">
+                <a href="/user/testuser1" class="author">testuser1</a> • 2 hours ago
+            </div>
+            <div class="usertext-body">
+                <div class="md">
+                    <p>This is a test comment to check if the extension can extract conversation context properly. The extension should be able to detect this as part of the conversation history.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="comment" data-testid="comment" id="t1_def456">
+            <div class="comment-author">
+                <a href="/user/testuser2" class="author">testuser2</a> • 1 hour ago
+            </div>
+            <div class="usertext-body">
+                <div class="md">
+                    <p>I agree with your point. Here's another comment that should be picked up by the conversation extraction logic.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reply box -->
+        <div class="reply-box">
+            <div class="usertext-edit">
+                <textarea placeholder="What are your thoughts?">i think this is a grate idea and we shuold definately impliment it</textarea>
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px; padding: 20px; background: #e8f5e9; border-radius: 8px;">
+        <h3 style="margin-top: 0; color: #2e7d32;">Debug Console</h3>
+        <p style="color: #555;">Open browser console (F12) to see debug logs from the extension. Look for messages prefixed with <code>[ChatRefinement]</code></p>
+    </div>
+    
+    <script>
+        // Log when inputs receive focus to help with debugging
+        document.addEventListener('focus', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable="true"]')) {
+                console.log('[TEST PAGE] Focus on:', e.target.tagName, e.target.className || e.target.id || 'unnamed');
+            }
+        }, true);
+        
+        // Log when text changes
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable="true"]')) {
+                console.log('[TEST PAGE] Input changed:', e.target.tagName, 'Value length:', 
+                    e.target.value ? e.target.value.length : e.target.textContent.length);
+            }
+        }, true);
+    </script>
+</body>
+</html>
