@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Word Selection Issue Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-editor {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 60px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            outline: none;
+            background: white;
+            margin-bottom: 15px;
+        }
+        
+        .test-editor:focus {
+            border-color: #0073b1;
+            box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.2);
+        }
+        
+        .test-btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        
+        .test-btn:hover {
+            background: #1976d2;
+        }
+        
+        .debug-info {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        
+        .success {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 First Word Selection Issue Test</h1>
+    
+    <div class="test-container">
+        <h3>Problem: First word not being replaced</h3>
+        <p>This test specifically targets the issue where the first word remains when replacing text.</p>
+        
+        <div class="test-editor" contenteditable="true" id="test1">
+            hye there, lets meet sometime
+        </div>
+        
+        <button class="test-btn" onclick="testRobustSelection('test1')">Test Robust Selection</button>
+        <button class="test-btn" onclick="testOriginalMethod('test1')">Test Original Method</button>
+        <button class="test-btn" onclick="resetText('test1')">Reset Text</button>
+        
+        <div class="debug-info" id="debug1"></div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Complex DOM Structure Test</h3>
+        <p>Test with more complex DOM structure that might cause selection issues.</p>
+        
+        <div class="test-editor" contenteditable="true" id="test2">
+            <div>hye there</div><div>lets meet sometime</div>
+        </div>
+        
+        <button class="test-btn" onclick="testRobustSelection('test2')">Test Robust Selection</button>
+        <button class="test-btn" onclick="testOriginalMethod('test2')">Test Original Method</button>
+        <button class="test-btn" onclick="resetText('test2')">Reset Text</button>
+        
+        <div class="debug-info" id="debug2"></div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Mixed Content Test</h3>
+        <p>Test with mixed text and HTML content.</p>
+        
+        <div class="test-editor" contenteditable="true" id="test3">
+            hye <strong>there</strong>, lets meet <em>sometime</em>
+        </div>
+        
+        <button class="test-btn" onclick="testRobustSelection('test3')">Test Robust Selection</button>
+        <button class="test-btn" onclick="testOriginalMethod('test3')">Test Original Method</button>
+        <button class="test-btn" onclick="resetText('test3')">Reset Text</button>
+        
+        <div class="debug-info" id="debug3"></div>
+    </div>
+    
+    <script>
+        const originalTexts = {
+            'test1': 'hye there, lets meet sometime',
+            'test2': '<div>hye there</div><div>lets meet sometime</div>',
+            'test3': 'hye <strong>there</strong>, lets meet <em>sometime</em>'
+        };
+        
+        const replacementText = "Hello, let's schedule a meeting sometime.";
+        
+        // Helper function to find last text node
+        function findLastTextNode(element) {
+            const walker = document.createTreeWalker(
+                element,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let lastTextNode = null;
+            let currentNode;
+            
+            while (currentNode = walker.nextNode()) {
+                if (currentNode.textContent.trim()) {
+                    lastTextNode = currentNode;
+                }
+            }
+            
+            return lastTextNode;
+        }
+        
+        // Helper to get text content
+        function getTextContent(element) {
+            return element.innerText || element.textContent || '';
+        }
+        
+        // Test the new robust selection method
+        async function testRobustSelection(testId) {
+            const element = document.getElementById(testId);
+            const debugDiv = document.getElementById('debug' + testId.slice(-1));
+            
+            let debugLog = 'ROBUST SELECTION TEST:\n';
+            
+            try {
+                element.focus();
+                
+                // Get original text
+                const originalText = getTextContent(element);
+                debugLog += `Original text: "${originalText}" (${originalText.length} chars)\n`;
+                
+                // Method 1: Try selectAll
+                document.execCommand('selectAll', false, null);
+                let selectedText = window.getSelection().toString();
+                debugLog += `selectAll result: "${selectedText}" (${selectedText.length} chars)\n`;
+                
+                let selectionSuccess = false;
+                
+                if (selectedText && selectedText.length >= originalText.length * 0.9) {
+                    selectionSuccess = true;
+                    debugLog += '✓ selectAll worked properly\n';
+                } else {
+                    debugLog += '✗ selectAll failed or incomplete, trying manual selection\n';
+                    
+                    // Method 2: Comprehensive manual selection
+                    try {
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        
+                        const range = document.createRange();
+                        
+                        // Find first and last text nodes
+                        const walker = document.createTreeWalker(
+                            element,
+                            NodeFilter.SHOW_TEXT,
+                            null,
+                            false
+                        );
+                        
+                        const firstTextNode = walker.nextNode();
+                        const lastTextNode = findLastTextNode(element);
+                        
+                        debugLog += `First text node: "${firstTextNode?.textContent}" at position 0\n`;
+                        debugLog += `Last text node: "${lastTextNode?.textContent}" at position ${lastTextNode?.textContent.length}\n`;
+                        
+                        if (firstTextNode && lastTextNode) {
+                            // Select from very beginning to very end
+                            range.setStart(firstTextNode, 0);
+                            range.setEnd(lastTextNode, lastTextNode.textContent.length);
+                            selection.addRange(range);
+                            
+                            selectedText = selection.toString();
+                            debugLog += `Manual selection result: "${selectedText}" (${selectedText.length} chars)\n`;
+                            
+                            if (selectedText && selectedText.length >= originalText.length * 0.9) {
+                                selectionSuccess = true;
+                                debugLog += '✓ Manual selection worked\n';
+                            }
+                        }
+                    } catch (e) {
+                        debugLog += `✗ Manual selection failed: ${e.message}\n`;
+                    }
+                }
+                
+                // Replace text
+                if (selectionSuccess) {
+                    // Use insertText with selected content
+                    const success = document.execCommand('insertText', false, replacementText);
+                    debugLog += `insertText success: ${success}\n`;
+                } else {
+                    // Manual replacement
+                    debugLog += 'Using manual replacement\n';
+                    element.innerHTML = '';
+                    element.textContent = replacementText;
+                }
+                
+                // Verify result
+                const finalText = getTextContent(element);
+                debugLog += `Final text: "${finalText}"\n`;
+                
+                if (finalText === replacementText) {
+                    debugLog += '✓ SUCCESS: Text replaced completely\n';
+                    debugDiv.innerHTML = `<span class="success">${debugLog}</span>`;
+                } else {
+                    debugLog += '✗ FAILURE: Text not replaced properly\n';
+                    debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+                }
+                
+            } catch (error) {
+                debugLog += `ERROR: ${error.message}\n`;
+                debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+            }
+        }
+        
+        // Test the original method for comparison
+        async function testOriginalMethod(testId) {
+            const element = document.getElementById(testId);
+            const debugDiv = document.getElementById('debug' + testId.slice(-1));
+            
+            let debugLog = 'ORIGINAL METHOD TEST:\n';
+            
+            try {
+                element.focus();
+                
+                const originalText = getTextContent(element);
+                debugLog += `Original text: "${originalText}"\n`;
+                
+                // Original method
+                document.execCommand('selectAll', false, null);
+                const selectedText = window.getSelection().toString();
+                debugLog += `Selected: "${selectedText}"\n`;
+                
+                const success = document.execCommand('insertText', false, replacementText);
+                debugLog += `insertText success: ${success}\n`;
+                
+                const finalText = getTextContent(element);
+                debugLog += `Final text: "${finalText}"\n`;
+                
+                if (finalText === replacementText) {
+                    debugLog += '✓ SUCCESS: Text replaced completely\n';
+                    debugDiv.innerHTML = `<span class="success">${debugLog}</span>`;
+                } else {
+                    debugLog += '✗ FAILURE: Text not replaced properly\n';
+                    debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+                }
+                
+            } catch (error) {
+                debugLog += `ERROR: ${error.message}\n`;
+                debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+            }
+        }
+        
+        function resetText(testId) {
+            const element = document.getElementById(testId);
+            const debugDiv = document.getElementById('debug' + testId.slice(-1));
+            
+            element.innerHTML = originalTexts[testId];
+            debugDiv.innerHTML = 'Text reset to original.';
+        }
+        
+        // Add focus logging
+        document.addEventListener('focus', (e) => {
+            if (e.target.contentEditable === 'true') {
+                console.log('Focused on contenteditable element:', e.target.id);
+            }
+        }, true);
+        
+        console.log('First Word Selection Issue Test loaded');
+        console.log('This test specifically targets the issue where the first word is not replaced');
+    </script>
+</body>
+</html>

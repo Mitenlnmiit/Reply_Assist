@@ -28,8 +28,8 @@
 ### Step 4: Start Using
 1. Go to any chat website (WhatsApp Web, Gmail, LinkedIn, etc.)
 2. Click in a text field and type your message
-3. Press `Ctrl+Y` to preview refined version
-4. Press `Ctrl+U` to replace with refined version
+3. Press `ALT+X` to preview refined version
+4. Press `ALT+Q` to replace with refined version
 
 ## Troubleshooting
 

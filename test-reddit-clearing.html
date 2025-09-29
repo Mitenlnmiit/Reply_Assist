@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Clearing Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #DAE0E6;
+        }
+        
+        .reddit-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .DraftEditor-editorContainer {
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 80px;
+            background: #F6F7F8;
+            margin-bottom: 15px;
+        }
+        
+        .public-DraftEditor-content {
+            min-height: 60px;
+            outline: none;
+            color: #1A1A1B;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .test-btn {
+            background: #0079D3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        
+        .debug-info {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧹 Reddit Clearing Test</h1>
+    
+    <div class="reddit-container">
+        <h2>Aggressive Clearing Test</h2>
+        <p>This tests the new aggressive clearing method for Reddit editors:</p>
+        
+        <div class="DraftEditor-editorContainer">
+            <div class="public-DraftEditor-content" 
+                 contenteditable="true" 
+                 role="textbox"
+                 spellcheck="true"
+                 id="clearing-test">hi thre this is a sample txt to undrstand if thr extnisno is wroking or nothi thre this is a sample txt to undrstand if thr extnisno is wroking or not</div>
+        </div>
+        
+        <button class="test-btn" onclick="testAggressiveClearing()">Test Aggressive Clearing + Replace</button>
+        <button class="test-btn" onclick="resetEditor()">Reset Text</button>
+        
+        <div class="debug-info" id="debug-info"></div>
+    </div>
+    
+    <script>
+        const originalText = 'hi thre this is a sample txt to undrstand if thr extnisno is wroking or nothi thre this is a sample txt to undrstand if thr extnisno is wroking or not';
+        const replacementText = 'Hi there, this is a sample text to understand if the extension is working or not.';
+        
+        function getTextContent(element) {
+            return element.innerText || element.textContent || '';
+        }
+        
+        async function testAggressiveClearing() {
+            const element = document.getElementById('clearing-test');
+            const debugDiv = document.getElementById('debug-info');
+            
+            let debugLog = 'AGGRESSIVE CLEARING TEST:\n';
+            
+            try {
+                const originalContent = getTextContent(element);
+                debugLog += `Original text: "${originalContent}" (${originalContent.length} chars)\n`;
+                
+                element.focus();
+                
+                // Step 1: Clear via selection + delete (React-friendly)
+                debugLog += '\n--- Step 1: Selection-based clearing ---\n';
+                try {
+                    document.execCommand('selectAll', false, null);
+                    const selectedText = window.getSelection().toString();
+                    debugLog += `Selected: "${selectedText}" (${selectedText.length} chars)\n`;
+                    
+                    document.execCommand('delete', false, null);
+                    debugLog += 'Executed delete command\n';
+                    
+                    const afterDelete = getTextContent(element);
+                    debugLog += `After delete: "${afterDelete}" (${afterDelete.length} chars)\n`;
+                } catch (e) {
+                    debugLog += `Selection clearing failed: ${e.message}\n`;
+                }
+                
+                // Step 2: DOM clearing
+                debugLog += '\n--- Step 2: DOM clearing ---\n';
+                element.innerHTML = '';
+                element.textContent = '';
+                
+                // Step 3: Remove all child nodes
+                let childCount = 0;
+                while (element.firstChild) {
+                    element.removeChild(element.firstChild);
+                    childCount++;
+                }
+                debugLog += `Removed ${childCount} child nodes\n`;
+                
+                // Step 4: Force reflows
+                element.offsetHeight;
+                element.offsetWidth;
+                
+                // Step 5: Wait for React
+                await new Promise(resolve => setTimeout(resolve, 10));
+                
+                const afterClearing = getTextContent(element);
+                debugLog += `After complete clearing: "${afterClearing}" (${afterClearing.length} chars)\n`;
+                
+                // Step 6: Set new content with multiple attempts
+                debugLog += '\n--- Step 6: Setting new content ---\n';
+                
+                element.textContent = replacementText;
+                let currentText = getTextContent(element);
+                debugLog += `After textContent: "${currentText}"\n`;
+                
+                if (!currentText || currentText !== replacementText) {
+                    debugLog += 'textContent failed, trying innerHTML...\n';
+                    element.innerHTML = replacementText.replace(/\n/g, '<br>');
+                    currentText = getTextContent(element);
+                    debugLog += `After innerHTML: "${currentText}"\n`;
+                }
+                
+                if (!currentText || currentText !== replacementText) {
+                    debugLog += 'innerHTML failed, trying text node insertion...\n';
+                    element.innerHTML = '';
+                    const textNode = document.createTextNode(replacementText);
+                    element.appendChild(textNode);
+                    currentText = getTextContent(element);
+                    debugLog += `After text node: "${currentText}"\n`;
+                }
+                
+                // Step 7: Trigger React events
+                debugLog += '\n--- Step 7: Triggering React events ---\n';
+                const events = [
+                    new InputEvent('input', { 
+                        bubbles: true,
+                        inputType: 'insertReplacementText',
+                        data: replacementText
+                    }),
+                    new Event('change', { bubbles: true })
+                ];
+                
+                events.forEach((event, index) => {
+                    setTimeout(() => {
+                        element.dispatchEvent(event);
+                    }, index * 20);
+                });
+                
+                // Final verification
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const finalText = getTextContent(element);
+                debugLog += `\nFINAL RESULT: "${finalText}" (${finalText.length} chars)\n`;
+                
+                if (finalText.trim() === replacementText.trim()) {
+                    debugLog += '✓ SUCCESS: Text replaced completely!\n';
+                    debugDiv.innerHTML = `<span style="color: green; font-weight: bold;">${debugLog}</span>`;
+                } else if (finalText.includes(originalContent)) {
+                    debugLog += '✗ FAILURE: Old text still present (not cleared properly)\n';
+                    debugDiv.innerHTML = `<span style="color: red; font-weight: bold;">${debugLog}</span>`;
+                } else if (finalText.includes(replacementText)) {
+                    debugLog += '⚠ PARTIAL: New text present but may have extra content\n';
+                    debugDiv.innerHTML = `<span style="color: orange; font-weight: bold;">${debugLog}</span>`;
+                } else {
+                    debugLog += '✗ FAILURE: Unexpected result\n';
+                    debugDiv.innerHTML = `<span style="color: red; font-weight: bold;">${debugLog}</span>`;
+                }
+                
+            } catch (error) {
+                debugLog += `\nERROR: ${error.message}\n`;
+                debugDiv.innerHTML = `<span style="color: red; font-weight: bold;">${debugLog}</span>`;
+            }
+        }
+        
+        function resetEditor() {
+            const element = document.getElementById('clearing-test');
+            const debugDiv = document.getElementById('debug-info');
+            
+            element.innerHTML = originalText;
+            debugDiv.innerHTML = 'Editor reset to original text.';
+        }
+        
+        console.log('Reddit Clearing Test loaded');
+    </script>
+</body>
+</html>

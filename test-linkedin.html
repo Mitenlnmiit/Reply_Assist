@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Quill Editor Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f3f2ef;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .test-description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        /* LinkedIn-style Quill editor */
+        .ql-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        .ql-editor {
+            min-height: 100px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            outline: none;
+            border: none;
+        }
+        
+        .ql-editor:focus {
+            border-color: #0073b1;
+            box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.2);
+        }
+        
+        .ql-editor p {
+            margin: 0 0 8px 0;
+        }
+        
+        .ql-editor p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* LinkedIn message box style */
+        .msg-form__contenteditable {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 80px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            outline: none;
+            background: white;
+        }
+        
+        .msg-form__contenteditable:focus {
+            border-color: #0073b1;
+            box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.2);
+        }
+        
+        .test-buttons {
+            margin-top: 15px;
+        }
+        
+        .test-btn {
+            background: #0073b1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        
+        .test-btn:hover {
+            background: #005885;
+        }
+        
+        .instructions {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0073b1;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #0073b1;
+        }
+        
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>LinkedIn Quill Editor Test Page</h1>
+    
+    <div class="instructions">
+        <h3>Testing the LinkedIn Text Replacement Fix</h3>
+        <p>This page simulates LinkedIn's Quill editor to test the improved text replacement functionality.</p>
+        <ul>
+            <li><strong>Alt + X:</strong> Custom instruction refinement</li>
+            <li><strong>Alt + Q:</strong> Direct text replacement</li>
+            <li>Type some text in the editors below, then use the keyboard shortcuts</li>
+            <li>Check that the replaced text is properly integrated (not overlayed)</li>
+            <li>Verify you can continue typing after replacement</li>
+        </ul>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">LinkedIn Message Editor Simulation</div>
+        <div class="test-description">Simulates LinkedIn's message composer with Quill.js</div>
+        
+        <div class="ql-container">
+            <div class="ql-editor" contenteditable="true" data-placeholder="Write a message...">
+                <p>Type your initial message here, then try Alt+X or Alt+Q to test the replacement functionality.</p>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="testQuillAPI(this.parentElement.parentElement)">Test Quill API</button>
+            <button class="test-btn" onclick="testClipboardPaste(this.parentElement.parentElement)">Test Clipboard</button>
+            <button class="test-btn" onclick="clearEditor(this.parentElement.parentElement)">Clear</button>
+        </div>
+        <div class="status" id="status1" style="display: none;"></div>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">LinkedIn Message Form Simulation</div>
+        <div class="test-description">Simulates LinkedIn's message form contenteditable</div>
+        
+        <div class="msg-form__contenteditable" contenteditable="true" data-placeholder="Type a message...">
+            Try typing here and then use Alt+X for custom instructions or Alt+Q for direct replacement.
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="testDirectReplacement(this.parentElement.parentElement)">Test Direct Replace</button>
+            <button class="test-btn" onclick="testTypingSimulation(this.parentElement.parentElement)">Test Typing</button>
+            <button class="test-btn" onclick="clearEditor(this.parentElement.parentElement)">Clear</button>
+        </div>
+        <div class="status" id="status2" style="display: none;"></div>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">Standard Quill Editor</div>
+        <div class="test-description">Standard Quill.js editor for comparison</div>
+        
+        <div class="ql-container">
+            <div class="ql-editor" contenteditable="true" data-test-ql-editor-contenteditable="true">
+                <p>This simulates a standard LinkedIn Quill editor. Test the extension functionality here.</p>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="simulateQuillInstance(this.parentElement.parentElement)">Add Quill Instance</button>
+            <button class="test-btn" onclick="testReactEvents(this.parentElement.parentElement)">Test React Events</button>
+            <button class="test-btn" onclick="clearEditor(this.parentElement.parentElement)">Clear</button>
+        </div>
+        <div class="status" id="status3" style="display: none;"></div>
+    </div>
+    
+    <script>
+        // Simulate Quill.js behavior
+        function simulateQuillInstance(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            // Add a mock Quill instance
+            const mockQuill = {
+                getText: () => editor.textContent || '',
+                getLength: () => (editor.textContent || '').length,
+                deleteText: (start, length) => {
+                    if (start === 0) {
+                        editor.innerHTML = '<p><br></p>';
+                    }
+                },
+                insertText: (index, text) => {
+                    editor.innerHTML = `<p>${text}</p>`;
+                },
+                focus: () => editor.focus(),
+                blur: () => editor.blur()
+            };
+            
+            // Attach to container (simulating how Quill.js works)
+            container.querySelector('.ql-container').__quill = mockQuill;
+            editor.__quill = mockQuill;
+            
+            showStatus(status, 'Mock Quill instance added successfully!', 'success');
+        }
+        
+        function testQuillAPI(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'This text was inserted via Quill API simulation.';
+            
+            // Simulate the extension's Quill API method
+            if (container.querySelector('.ql-container').__quill) {
+                const quill = container.querySelector('.ql-container').__quill;
+                quill.deleteText(0, quill.getLength());
+                quill.insertText(0, testText);
+                showStatus(status, 'Quill API test successful!', 'success');
+            } else {
+                showStatus(status, 'No Quill instance found. Click "Add Quill Instance" first.', 'error');
+            }
+        }
+        
+        function testClipboardPaste(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'This text was inserted via clipboard simulation.';
+            
+            // Simulate clipboard paste
+            editor.focus();
+            
+            // Select all content
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Create clipboard event
+            const clipboardData = new DataTransfer();
+            clipboardData.setData('text/plain', testText);
+            
+            const pasteEvent = new ClipboardEvent('paste', {
+                bubbles: true,
+                cancelable: true,
+                clipboardData: clipboardData
+            });
+            
+            editor.dispatchEvent(pasteEvent);
+            
+            // Manual fallback
+            if (!pasteEvent.defaultPrevented) {
+                document.execCommand('insertText', false, testText);
+            }
+            
+            showStatus(status, 'Clipboard paste test completed!', 'success');
+        }
+        
+        function testDirectReplacement(container) {
+            const editor = container.querySelector('.msg-form__contenteditable');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Direct replacement test: This text should integrate properly with the editor.';
+            
+            // Simulate the extension's direct replacement
+            editor.focus();
+            editor.innerHTML = '';
+            editor.textContent = testText;
+            
+            // Trigger events
+            const events = ['input', 'change', 'blur', 'focus'];
+            events.forEach(eventType => {
+                const event = new Event(eventType, { bubbles: true });
+                editor.dispatchEvent(event);
+            });
+            
+            showStatus(status, 'Direct replacement test completed!', 'success');
+        }
+        
+        function testTypingSimulation(container) {
+            const editor = container.querySelector('.msg-form__contenteditable');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Typing simulation test.';
+            
+            // Clear editor
+            editor.focus();
+            editor.innerHTML = '';
+            
+            // Simulate typing character by character
+            let index = 0;
+            const typeChar = () => {
+                if (index >= testText.length) {
+                    showStatus(status, 'Typing simulation completed!', 'success');
+                    return;
+                }
+                
+                const char = testText[index];
+                document.execCommand('insertText', false, char);
+                
+                // Trigger input event
+                const inputEvent = new InputEvent('input', {
+                    bubbles: true,
+                    inputType: 'insertText',
+                    data: char
+                });
+                editor.dispatchEvent(inputEvent);
+                
+                index++;
+                setTimeout(typeChar, 50); // 50ms delay between characters
+            };
+            
+            typeChar();
+        }
+        
+        function testReactEvents(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'React event simulation test.';
+            
+            // Simulate React-style text setting
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLDivElement.prototype, 
+                'textContent'
+            ).set;
+            
+            if (nativeInputValueSetter) {
+                nativeInputValueSetter.call(editor, testText);
+                
+                // Create synthetic React event
+                const inputEvent = new Event('input', { bubbles: true });
+                Object.defineProperty(inputEvent, 'target', { writable: false, value: editor });
+                Object.defineProperty(inputEvent, 'currentTarget', { writable: false, value: editor });
+                
+                editor.dispatchEvent(inputEvent);
+            }
+            
+            showStatus(status, 'React events test completed!', 'success');
+        }
+        
+        function clearEditor(container) {
+            const editors = container.querySelectorAll('.ql-editor, .msg-form__contenteditable');
+            const status = container.querySelector('.status');
+            
+            editors.forEach(editor => {
+                editor.innerHTML = '<p><br></p>';
+                editor.focus();
+            });
+            
+            if (status) {
+                status.style.display = 'none';
+            }
+        }
+        
+        function showStatus(statusElement, message, type) {
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Add event listeners for keyboard shortcuts (for testing)
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && (e.key === 'x' || e.key === 'X')) {
+                e.preventDefault();
+                console.log('Alt+X detected - would trigger custom instructions');
+                alert('Alt+X detected! This would trigger the custom instructions dialog.');
+            } else if (e.altKey && (e.key === 'q' || e.key === 'Q')) {
+                e.preventDefault();
+                console.log('Alt+Q detected - would trigger direct replacement');
+                alert('Alt+Q detected! This would trigger direct text replacement.');
+            }
+        });
+        
+        // Initialize with mock Quill instances
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('LinkedIn Quill Editor Test Page loaded');
+            console.log('Use Alt+X for custom instructions, Alt+Q for direct replacement');
+            
+            // Add some initial mock Quill instances
+            const containers = document.querySelectorAll('.test-container');
+            containers.forEach((container, index) => {
+                if (container.querySelector('.ql-container')) {
+                    simulateQuillInstance(container);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

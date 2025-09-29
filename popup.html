@@ -3,38 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Refinement Assistant</title>
+    <title>Reply Assist</title>
     <style>
         body {
-            width: 350px;
-            min-height: 200px;
+            width: 360px;
+            min-height: 220px;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8f9fa;
+            background: #ffffff;
+            color: #0f172a;
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
         }
 
-        .header h1 {
+        .logo {
+            width: 20px;
+            height: 20px;
+        }
+
+        .title {
             margin: 0;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 600;
+            letter-spacing: 0.2px;
         }
 
-        .header p {
-            margin: 8px 0 0 0;
-            font-size: 12px;
-            opacity: 0.9;
+        .subtitle {
+            margin: 2px 0 0 0;
+            font-size: 11px;
+            color: #64748b;
         }
 
         .content {
-            padding: 20px;
+            padding: 16px;
         }
 
         .status {
@@ -54,18 +62,18 @@
         }
 
         .status-icon.success {
-            background: #d4edda;
-            color: #155724;
+            background: #ecfdf5;
+            color: #065f46;
         }
 
         .status-icon.error {
-            background: #f8d7da;
-            color: #721c24;
+            background: #fef2f2;
+            color: #991b1b;
         }
 
         .status-icon.warning {
-            background: #fff3cd;
-            color: #856404;
+            background: #fffbeb;
+            color: #92400e;
         }
 
         .status-text {
@@ -98,42 +106,14 @@
             display: block;
         }
 
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
+        .btn-primary { background: #111827; color: white; }
+        .btn-primary:hover { background: #0b1220; }
+        .btn-secondary { background: #f3f4f6; color: #111827; }
+        .btn-secondary:hover { background: #e5e7eb; }
+        .btn-outline { background: transparent; color: #111827; border: 1px solid #e5e7eb; }
+        .btn-outline:hover { background: #111827; color: white; }
 
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: #007bff;
-            border: 1px solid #007bff;
-        }
-
-        .btn-outline:hover {
-            background: #007bff;
-            color: white;
-        }
-
-        .shortcuts {
-            background: white;
-            border-radius: 6px;
-            padding: 16px;
-            margin-top: 16px;
-            border: 1px solid #e0e0e0;
-        }
+        .shortcuts { background: #fafafa; border-radius: 8px; padding: 12px; margin-top: 14px; border: 1px solid #f0f0f0; }
 
         .shortcuts h3 {
             margin: 0 0 12px 0;
@@ -161,18 +141,8 @@
             font-size: 11px;
         }
 
-        .footer {
-            padding: 16px 20px;
-            border-top: 1px solid #e0e0e0;
-            background: white;
-            text-align: center;
-        }
-
-        .footer-text {
-            font-size: 11px;
-            color: #666;
-            margin: 0;
-        }
+        .footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; background: #ffffff; text-align: center; }
+        .footer-text { font-size: 11px; color: #6b7280; margin: 0; }
 
         .hidden {
             display: none;
@@ -181,8 +151,10 @@
 </head>
 <body>
     <div class="header">
-        <h1>Chat Refinement Assistant</h1>
-        <p>AI-powered reply refinement</p>
+        <img src="icons/reply.png" alt="Reply Assist" class="logo">
+        <div>
+            <h1 class="title">Reply Assist</h1>
+        </div>
     </div>
 
     <div class="content">
@@ -191,29 +163,29 @@
                 <span>🤖</span>
             </div>
             <div id="status-text" class="status-text">Ready to refine your messages</div>
-            <div id="status-detail" class="status-detail">Click in any text field and use ALT+X or ALT+Q</div>
+            <div id="status-detail" class="status-detail">Click any text field → ALT+X or ALT+Q</div>
         </div>
 
         <div class="actions">
-            <button id="open-options" class="btn btn-outline">Configure API Key</button>
+            <button id="open-options" class="btn btn-primary">Configure API Key</button>
             <button id="test-connection" class="btn btn-secondary">Test Connection</button>
         </div>
 
         <div class="shortcuts">
             <h3>Keyboard Shortcuts</h3>
             <div class="shortcut-item">
-                <span>Preview refinement</span>
-                <span class="shortcut-key">ALT+X</span>
+                <span>Auto-Refine</span>
+                <span class="shortcut-key">ALT+Q</span>
             </div>
             <div class="shortcut-item">
-                <span>Replace with refinement</span>
-                <span class="shortcut-key">ALT+Q</span>
+                <span>Custom Refinement</span>
+                <span class="shortcut-key">ALT+X</span>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        <p class="footer-text">Works on WhatsApp Web, Gmail, LinkedIn, Reddit, and more</p>
+        <p class="footer-text">Reply Assist works across your browser</p>
     </div>
 
     <script src="popup.js"></script>

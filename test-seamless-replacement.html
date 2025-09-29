@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seamless Text Replacement Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .test-description {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+            font-size: 16px;
+        }
+        
+        .success-indicator {
+            background: #e8f5e9;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* LinkedIn-style editors */
+        .linkedin-editor {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 80px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            outline: none;
+            background: white;
+            margin-bottom: 10px;
+        }
+        
+        .linkedin-editor:focus {
+            border-color: #0073b1;
+            box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.2);
+        }
+        
+        .ql-editor {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 80px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            outline: none;
+            background: white;
+            margin-bottom: 10px;
+        }
+        
+        .ql-editor:focus {
+            border-color: #0073b1;
+            box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.2);
+        }
+        
+        /* Reddit-style editors */
+        .reddit-editor {
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 80px;
+            background: #F6F7F8;
+            margin-bottom: 10px;
+            outline: none;
+        }
+        
+        .reddit-editor:focus {
+            background: white;
+            border-color: #0079D3;
+        }
+        
+        .DraftEditor-editorContainer {
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 80px;
+            background: #F6F7F8;
+            margin-bottom: 10px;
+        }
+        
+        .DraftEditor-editorContainer:focus-within {
+            background: white;
+            border-color: #0079D3;
+        }
+        
+        .public-DraftEditor-content {
+            min-height: 60px;
+            outline: none;
+        }
+        
+        /* WhatsApp-style editor */
+        .whatsapp-editor {
+            border: 1px solid #d1d7db;
+            border-radius: 20px;
+            padding: 8px 16px;
+            min-height: 40px;
+            background: white;
+            margin-bottom: 10px;
+            outline: none;
+            font-size: 15px;
+        }
+        
+        .whatsapp-editor:focus {
+            border-color: #00a884;
+        }
+        
+        /* Standard inputs */
+        .standard-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .standard-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+        
+        .test-buttons {
+            margin-top: 15px;
+        }
+        
+        .test-btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .test-btn:hover {
+            background: #1976d2;
+        }
+        
+        .test-btn.method1 {
+            background: #4caf50;
+        }
+        
+        .test-btn.method1:hover {
+            background: #388e3c;
+        }
+        
+        .test-btn.method2 {
+            background: #ff9800;
+        }
+        
+        .test-btn.method2:hover {
+            background: #f57c00;
+        }
+        
+        .test-btn.method3 {
+            background: #9c27b0;
+        }
+        
+        .test-btn.method3:hover {
+            background: #7b1fa2;
+        }
+        
+        .shortcut {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Seamless Text Replacement Test</h1>
+    
+    <div class="instructions">
+        <h3>New Seamless Text Replacement Methods</h3>
+        <p>This page tests the new seamless text replacement system with 3 fallback methods:</p>
+        <ul>
+            <li><strong>Method 1 (Green):</strong> Clipboard + Paste Event - Most seamless, feels like natural Ctrl+V</li>
+            <li><strong>Method 2 (Orange):</strong> execCommand - Good compatibility, preserves undo history</li>
+            <li><strong>Method 3 (Purple):</strong> Direct DOM + Events - Last resort with comprehensive event triggering</li>
+        </ul>
+        <p><strong>Extension shortcuts:</strong> <span class="shortcut">Alt+Q</span> for quick replacement, <span class="shortcut">Alt+X</span> for custom instructions</p>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">LinkedIn Message Editors</div>
+        <div class="test-description">Tests LinkedIn-style Quill editors and message forms</div>
+        
+        <div class="ql-editor" contenteditable="true" data-placeholder="Write a message...">
+            Type your message here and test the seamless replacement methods. This simulates LinkedIn's Quill editor.
+        </div>
+        
+        <div class="linkedin-editor" contenteditable="true" data-placeholder="Message content...">
+            Another LinkedIn-style editor for testing different contenteditable implementations.
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn method1" onclick="testMethod(this, 1)">Test Method 1 (Clipboard)</button>
+            <button class="test-btn method2" onclick="testMethod(this, 2)">Test Method 2 (execCommand)</button>
+            <button class="test-btn method3" onclick="testMethod(this, 3)">Test Method 3 (Direct)</button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">Reddit Post & Comment Editors</div>
+        <div class="test-description">Tests Reddit's Draft.js and Lexical editors</div>
+        
+        <div class="DraftEditor-editorContainer">
+            <div class="public-DraftEditor-content" contenteditable="true" role="textbox" spellcheck="true">
+                This simulates Reddit's Draft.js editor. Type here and test the replacement methods.
+            </div>
+        </div>
+        
+        <div class="reddit-editor" contenteditable="true" data-lexical-editor="true" role="textbox" spellcheck="true">
+            This simulates Reddit's Lexical editor. Test how well the new methods work with modern editors.
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn method1" onclick="testMethod(this, 1)">Test Method 1 (Clipboard)</button>
+            <button class="test-btn method2" onclick="testMethod(this, 2)">Test Method 2 (execCommand)</button>
+            <button class="test-btn method3" onclick="testMethod(this, 3)">Test Method 3 (Direct)</button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">WhatsApp-Style Editors</div>
+        <div class="test-description">Tests messaging app-style contenteditable elements</div>
+        
+        <div class="whatsapp-editor" contenteditable="true" data-placeholder="Type a message">
+            WhatsApp-style message editor simulation. Test the seamless replacement here.
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn method1" onclick="testMethod(this, 1)">Test Method 1 (Clipboard)</button>
+            <button class="test-btn method2" onclick="testMethod(this, 2)">Test Method 2 (execCommand)</button>
+            <button class="test-btn method3" onclick="testMethod(this, 3)">Test Method 3 (Direct)</button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">Standard Form Elements</div>
+        <div class="test-description">Tests traditional input and textarea elements</div>
+        
+        <input type="text" class="standard-input" placeholder="Standard input field" value="Test input text replacement here">
+        
+        <textarea class="standard-textarea" placeholder="Standard textarea">Test textarea replacement functionality with the new seamless methods.</textarea>
+        
+        <div class="test-buttons">
+            <button class="test-btn method1" onclick="testMethod(this, 1)">Test Method 1 (Clipboard)</button>
+            <button class="test-btn method2" onclick="testMethod(this, 2)">Test Method 2 (execCommand)</button>
+            <button class="test-btn method3" onclick="testMethod(this, 3)">Test Method 3 (Direct)</button>
+        </div>
+    </div>
+    
+    <script>
+        // Simulate the extension's new seamless text replacement methods
+        
+        async function testMethod(button, methodNumber) {
+            const container = button.closest('.test-container');
+            const editors = container.querySelectorAll('[contenteditable="true"], input, textarea');
+            
+            // Find the focused editor or use the first one
+            let targetEditor = document.activeElement;
+            if (!editors.length || !Array.from(editors).includes(targetEditor)) {
+                targetEditor = editors[0];
+            }
+            
+            if (!targetEditor) {
+                alert('No editor found in this container');
+                return;
+            }
+            
+            const testTexts = [
+                'Hello! This text was seamlessly replaced using Method 1 (Clipboard + Paste). It should feel natural and preserve all functionality.',
+                'Greetings! Method 2 (execCommand) was used for this replacement. This preserves undo history and works well across browsers.',
+                'Hi there! Method 3 (Direct DOM + Events) replaced this text. This is the fallback method with comprehensive event triggering.'
+            ];
+            
+            const testText = testTexts[methodNumber - 1];
+            
+            try {
+                let success = false;
+                
+                switch (methodNumber) {
+                    case 1:
+                        success = await replaceTextWithClipboard(targetEditor, testText);
+                        break;
+                    case 2:
+                        success = await replaceTextWithExecCommand(targetEditor, testText);
+                        break;
+                    case 3:
+                        success = await replaceTextDirect(targetEditor, testText);
+                        break;
+                }
+                
+                if (success) {
+                    showSuccessIndicator(container, `Method ${methodNumber} successful!`);
+                } else {
+                    showSuccessIndicator(container, `Method ${methodNumber} failed - check console for details`, 'error');
+                }
+                
+            } catch (error) {
+                console.error(`Method ${methodNumber} failed:`, error);
+                showSuccessIndicator(container, `Method ${methodNumber} error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Method 1: Clipboard + Paste (Most Seamless)
+        async function replaceTextWithClipboard(element, text) {
+            try {
+                console.log('Testing Method 1: Clipboard + Paste');
+                
+                // Focus the element
+                element.focus();
+                
+                // Ensure complete text selection and clearing
+                if (element.contentEditable === 'true' || element.contentEditable === '') {
+                    // Method 1: Try selectAll command first (most reliable)
+                    document.execCommand('selectAll', false, null);
+                    
+                    // Method 2: Manual range selection as fallback
+                    try {
+                        const range = document.createRange();
+                        range.selectNodeContents(element);
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } catch (e) {
+                        console.log('Manual range selection failed:', e);
+                    }
+                    
+                    // Method 3: Ensure we have some selection by clearing content if needed
+                    const selectedText = window.getSelection().toString();
+                    if (!selectedText || selectedText.length === 0) {
+                        console.log('No text selected, clearing manually');
+                        element.innerHTML = '';
+                        element.textContent = '';
+                    }
+                } else {
+                    // For input/textarea elements
+                    element.select();
+                    element.setSelectionRange(0, element.value.length);
+                }
+
+                // Write to clipboard (modern browsers)
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                }
+
+                // Create and dispatch paste event
+                const clipboardData = new DataTransfer();
+                clipboardData.setData('text/plain', text);
+                clipboardData.setData('text/html', text);
+                
+                const pasteEvent = new ClipboardEvent('paste', {
+                    bubbles: true,
+                    cancelable: true,
+                    clipboardData: clipboardData
+                });
+
+                element.dispatchEvent(pasteEvent);
+
+                // If paste event didn't work, fall back to manual replacement
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                let currentText = getTextFromElement(element);
+                if (!currentText.includes(text)) {
+                    console.log('Paste event failed, using manual replacement');
+                    
+                    // Clear and set text manually
+                    if (element.contentEditable === 'true' || element.contentEditable === '') {
+                        element.innerHTML = '';
+                        element.textContent = text;
+                    } else {
+                        element.value = text;
+                    }
+                    
+                    // Trigger events
+                    triggerInputEvents(element, text);
+                    currentText = text;
+                }
+                
+                const success = currentText.trim() === text.trim() || currentText.includes(text);
+                
+                console.log('Method 1 result:', { success, currentText: currentText.substring(0, 100) });
+                return success;
+
+            } catch (error) {
+                console.log('Method 1 failed:', error);
+                return false;
+            }
+        }
+        
+        // Method 2: execCommand (Good Compatibility)
+        async function replaceTextWithExecCommand(element, text) {
+            try {
+                console.log('Testing Method 2: execCommand');
+                
+                element.focus();
+                
+                // Ensure complete text selection
+                if (element.contentEditable === 'true' || element.contentEditable === '') {
+                    // For contenteditable elements
+                    document.execCommand('selectAll', false, null);
+                    
+                    // Double-check selection worked
+                    const selectedText = window.getSelection().toString();
+                    if (!selectedText || selectedText.length === 0) {
+                        console.log('selectAll failed, trying manual selection');
+                        
+                        // Manual selection as fallback
+                        try {
+                            const range = document.createRange();
+                            range.selectNodeContents(element);
+                            const selection = window.getSelection();
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        } catch (e) {
+                            console.log('Manual selection also failed, clearing content');
+                            element.innerHTML = '';
+                            element.textContent = '';
+                        }
+                    }
+                } else {
+                    // For input/textarea elements
+                    element.select();
+                    element.setSelectionRange(0, element.value.length);
+                }
+                
+                // Insert text using execCommand (preserves undo history)
+                const success = document.execCommand('insertText', false, text);
+                
+                if (!success) {
+                    console.log('insertText failed, using manual replacement');
+                    
+                    // Manual fallback
+                    if (element.contentEditable === 'true' || element.contentEditable === '') {
+                        element.innerHTML = '';
+                        element.textContent = text;
+                    } else {
+                        element.value = text;
+                    }
+                }
+                
+                // Always trigger events for framework compatibility
+                triggerInputEvents(element, text);
+                
+                // Verify the change
+                const currentText = getTextFromElement(element);
+                const verified = currentText.trim() === text.trim();
+                
+                console.log('Method 2 result:', { success, verified, currentText: currentText.substring(0, 100) });
+                return verified; // Return based on verification, not just execCommand success
+
+            } catch (error) {
+                console.log('Method 2 failed:', error);
+                return false;
+            }
+        }
+        
+        // Method 3: Direct DOM Manipulation (Last Resort)
+        async function replaceTextDirect(element, text) {
+            try {
+                console.log('Testing Method 3: Direct DOM');
+                
+                element.focus();
+                
+                // Completely clear and set the text based on element type
+                if (element.contentEditable === 'true' || element.contentEditable === '') {
+                    // For contenteditable elements - clear completely first
+                    element.innerHTML = '';
+                    element.textContent = '';
+                    
+                    // Small delay to ensure clearing is complete
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                    
+                    // Set new text
+                    element.textContent = text;
+                    
+                    // For complex editors, also try innerHTML as fallback
+                    if (!element.textContent || element.textContent !== text) {
+                        element.innerHTML = text.replace(/\n/g, '<br>');
+                    }
+                } else {
+                    // For input/textarea elements
+                    element.value = '';
+                    element.value = text;
+                }
+                
+                // Trigger comprehensive events for framework compatibility
+                triggerInputEvents(element, text);
+                
+                // Position cursor at the end
+                positionCursorAtEnd(element);
+                
+                // Verify the change
+                const currentText = getTextFromElement(element);
+                const success = currentText.trim() === text.trim();
+                
+                console.log('Method 3 result:', { success, currentText: currentText.substring(0, 100) });
+                return success;
+
+            } catch (error) {
+                console.log('Method 3 failed:', error);
+                return false;
+            }
+        }
+        
+        // Helper functions
+        function getTextFromElement(element) {
+            if (element.contentEditable === 'true' || element.contentEditable === '') {
+                return element.innerText || element.textContent || '';
+            }
+            return element.value || '';
+        }
+        
+        function triggerInputEvents(element, text) {
+            const events = [
+                new InputEvent('beforeinput', { 
+                    bubbles: true, 
+                    cancelable: true,
+                    inputType: 'insertReplacementText',
+                    data: text
+                }),
+                new InputEvent('input', { 
+                    bubbles: true,
+                    inputType: 'insertReplacementText',
+                    data: text
+                }),
+                new Event('change', { bubbles: true }),
+                new Event('focus', { bubbles: true }),
+                new Event('blur', { bubbles: true })
+            ];
+
+            events.forEach((event, index) => {
+                setTimeout(() => {
+                    element.dispatchEvent(event);
+                }, index * 5);
+            });
+        }
+        
+        function positionCursorAtEnd(element) {
+            try {
+                if (element.contentEditable === 'true' || element.contentEditable === '') {
+                    const range = document.createRange();
+                    const selection = window.getSelection();
+                    
+                    if (element.firstChild) {
+                        const textNode = element.firstChild;
+                        const length = textNode.textContent ? textNode.textContent.length : textNode.length;
+                        range.setStart(textNode, length);
+                        range.setEnd(textNode, length);
+                    } else {
+                        range.selectNodeContents(element);
+                        range.collapse(false);
+                    }
+                    
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    const length = element.value.length;
+                    element.setSelectionRange(length, length);
+                }
+            } catch (error) {
+                console.log('Could not position cursor:', error);
+            }
+        }
+        
+        function showSuccessIndicator(container, message, type = 'success') {
+            // Remove existing indicator
+            const existing = container.querySelector('.success-indicator');
+            if (existing) {
+                existing.remove();
+            }
+            
+            // Create new indicator
+            const indicator = document.createElement('div');
+            indicator.className = 'success-indicator';
+            if (type === 'error') {
+                indicator.style.background = '#ffebee';
+                indicator.style.color = '#c62828';
+                indicator.style.borderLeftColor = '#f44336';
+            }
+            indicator.textContent = message;
+            
+            container.appendChild(indicator);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (indicator.parentNode) {
+                    indicator.remove();
+                }
+            }, 5000);
+        }
+        
+        // Log when inputs receive focus to help with debugging
+        document.addEventListener('focus', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable="true"]')) {
+                console.log('[TEST PAGE] Focus on:', e.target.tagName, e.target.className || 'unnamed');
+            }
+        }, true);
+        
+        // Log when text changes
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable="true"]')) {
+                console.log('[TEST PAGE] Input changed:', e.target.tagName, 'Value length:', 
+                    e.target.value ? e.target.value.length : e.target.textContent.length);
+            }
+        }, true);
+        
+        console.log('Seamless Text Replacement Test Page loaded');
+        console.log('Use the buttons to test different replacement methods');
+        console.log('Or use Alt+Q/Alt+X with the extension');
+    </script>
+</body>
+</html>

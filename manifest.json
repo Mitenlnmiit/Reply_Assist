@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Chat Refinement Assistant",
+  "name": "Reply Assist",
   "version": "1.0.0",
   "description": "Refine your chat replies using AI with context awareness",
   "permissions": [
@@ -24,7 +24,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Chat Refinement Assistant"
+    "default_title": "Reply Assist"
   },
   "options_page": "options.html",
   "commands": {
@@ -44,9 +44,9 @@
     }
   },
   "icons": {
-    "16": "icons/icon16.svg",
-    "32": "icons/icon32.svg",
-    "48": "icons/icon48.svg",
-    "128": "icons/icon128.svg"
+    "16": "icons/reply.png",
+    "32": "icons/reply.png",
+    "48": "icons/reply.png",
+    "128": "icons/reply.png"
   }
 }

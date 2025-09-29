@@ -1,4 +1,4 @@
-// Popup script for Chat Refinement Assistant
+// Popup script for Reply Assist
 class PopupManager {
   constructor() {
     this.init();

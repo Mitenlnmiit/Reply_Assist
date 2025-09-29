@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Text Replacement Test - V2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f3f2ef;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .test-description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        /* LinkedIn-style Quill editor */
+        .ql-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        .ql-editor {
+            min-height: 100px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            outline: none;
+            border: none;
+        }
+        
+        .ql-editor:focus {
+            border-color: #0073b1;
+            box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.2);
+        }
+        
+        .ql-editor p {
+            margin: 0 0 8px 0;
+        }
+        
+        .ql-editor p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* LinkedIn message box style */
+        .msg-form__contenteditable {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 80px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            outline: none;
+            background: white;
+        }
+        
+        .msg-form__contenteditable:focus {
+            border-color: #0073b1;
+            box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.2);
+        }
+        
+        .test-buttons {
+            margin-top: 15px;
+        }
+        
+        .test-btn {
+            background: #0073b1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        
+        .test-btn:hover {
+            background: #005885;
+        }
+        
+        .test-btn.secondary {
+            background: #6c757d;
+        }
+        
+        .test-btn.secondary:hover {
+            background: #545b62;
+        }
+        
+        .instructions {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0073b1;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #0073b1;
+        }
+        
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .method-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .method-list h4 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        
+        .method-list ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .method-list li {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LinkedIn Text Replacement Test - V2 (New Approach)</h1>
+    
+    <div class="instructions">
+        <h3>Testing the NEW LinkedIn Text Replacement Approach</h3>
+        <p>This page tests the completely new approach that works WITH LinkedIn's architecture rather than against it.</p>
+        <ul>
+            <li><strong>Alt + X:</strong> Custom instruction refinement</li>
+            <li><strong>Alt + Q:</strong> Direct text replacement</li>
+            <li>Type some text in the editors below, then use the keyboard shortcuts</li>
+            <li>The new approach uses 7 different methods to ensure compatibility</li>
+        </ul>
+    </div>
+    
+    <div class="method-list">
+        <h4>New LinkedIn-Specific Methods:</h4>
+        <ol>
+            <li><strong>React Component Manipulation:</strong> Directly manipulates LinkedIn's React state</li>
+            <li><strong>Event System Integration:</strong> Works with LinkedIn's event system</li>
+            <li><strong>Mutation Observer:</strong> Uses DOM mutation detection</li>
+            <li><strong>Clipboard Integration:</strong> Enhanced clipboard simulation</li>
+            <li><strong>Keyboard Event Simulation:</strong> Realistic typing simulation</li>
+            <li><strong>Focus/Selection Approach:</strong> Proper focus and selection handling</li>
+            <li><strong>Native Browser API:</strong> Multiple native approaches</li>
+        </ol>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">LinkedIn Message Editor - React Component Test</div>
+        <div class="test-description">Tests React component manipulation and event system integration</div>
+        
+        <div class="ql-container">
+            <div class="ql-editor" contenteditable="true" data-placeholder="Write a message...">
+                <p>Type your message here. The new approach will try to work with LinkedIn's React components.</p>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="testReactComponentManipulation(this.parentElement.parentElement)">Test React Manipulation</button>
+            <button class="test-btn" onclick="testEventSystemIntegration(this.parentElement.parentElement)">Test Event System</button>
+            <button class="test-btn secondary" onclick="clearEditor(this.parentElement.parentElement)">Clear</button>
+        </div>
+        <div class="status" id="status1" style="display: none;"></div>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">LinkedIn Message Form - Mutation Observer Test</div>
+        <div class="test-description">Tests mutation observer and clipboard integration approaches</div>
+        
+        <div class="msg-form__contenteditable" contenteditable="true" data-placeholder="Type a message...">
+            This tests the mutation observer approach and clipboard integration.
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="testMutationObserver(this.parentElement.parentElement)">Test Mutation Observer</button>
+            <button class="test-btn" onclick="testClipboardIntegration(this.parentElement.parentElement)">Test Clipboard</button>
+            <button class="test-btn secondary" onclick="clearEditor(this.parentElement.parentElement)">Clear</button>
+        </div>
+        <div class="status" id="status2" style="display: none;"></div>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-title">LinkedIn Keyboard Simulation Test</div>
+        <div class="test-description">Tests keyboard event simulation and focus/selection approaches</div>
+        
+        <div class="ql-container">
+            <div class="ql-editor" contenteditable="true" data-test-ql-editor-contenteditable="true">
+                <p>This tests keyboard event simulation and focus/selection approaches.</p>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="testKeyboardSimulation(this.parentElement.parentElement)">Test Keyboard Events</button>
+            <button class="test-btn" onclick="testFocusSelection(this.parentElement.parentElement)">Test Focus/Selection</button>
+            <button class="test-btn" onclick="testNativeBrowserAPI(this.parentElement.parentElement)">Test Native API</button>
+            <button class="test-btn secondary" onclick="clearEditor(this.parentElement.parentElement)">Clear</button>
+        </div>
+        <div class="status" id="status3" style="display: none;"></div>
+    </div>
+    
+    <script>
+        // Test React Component Manipulation
+        function testReactComponentManipulation(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'React component manipulation test: This should work with LinkedIn\'s React state.';
+            
+            // Simulate React component manipulation
+            try {
+                // Add mock React properties
+                editor.__reactInternalInstance = {
+                    stateNode: {
+                        state: { message: '', text: '' },
+                        setState: (newState) => {
+                            Object.assign(editor.__reactInternalInstance.stateNode.state, newState);
+                            editor.textContent = newState.message || newState.text || '';
+                        }
+                    }
+                };
+                
+                // Simulate the extension's React manipulation
+                const reactInstance = editor.__reactInternalInstance;
+                if (reactInstance.stateNode && reactInstance.stateNode.setState) {
+                    reactInstance.stateNode.setState({ message: testText, text: testText });
+                }
+                
+                showStatus(status, 'React component manipulation test completed!', 'success');
+            } catch (e) {
+                showStatus(status, 'React component manipulation failed: ' + e.message, 'error');
+            }
+        }
+        
+        // Test Event System Integration
+        function testEventSystemIntegration(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Event system integration test: This should trigger LinkedIn-compatible events.';
+            
+            try {
+                // Create LinkedIn-compatible event
+                const linkedinEvent = new CustomEvent('linkedin-text-change', {
+                    bubbles: true,
+                    cancelable: true,
+                    detail: {
+                        text: testText,
+                        source: 'extension',
+                        timestamp: Date.now(),
+                        element: editor
+                    }
+                });
+                
+                // Add LinkedIn-specific properties
+                Object.defineProperty(linkedinEvent, 'target', { writable: false, value: editor });
+                Object.defineProperty(linkedinEvent, 'currentTarget', { writable: false, value: editor });
+                Object.defineProperty(linkedinEvent, 'value', { writable: false, value: testText });
+                Object.defineProperty(linkedinEvent, 'textContent', { writable: false, value: testText });
+                
+                // Dispatch the event
+                editor.dispatchEvent(linkedinEvent);
+                
+                // Also set the text
+                editor.textContent = testText;
+                
+                showStatus(status, 'Event system integration test completed!', 'success');
+            } catch (e) {
+                showStatus(status, 'Event system integration failed: ' + e.message, 'error');
+            }
+        }
+        
+        // Test Mutation Observer
+        function testMutationObserver(container) {
+            const editor = container.querySelector('.msg-form__contenteditable');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Mutation observer test: This should be detected by LinkedIn\'s change detection.';
+            
+            try {
+                // Set up mutation observer
+                const observer = new MutationObserver((mutations) => {
+                    console.log('LinkedIn DOM mutations detected:', mutations.length);
+                });
+                
+                observer.observe(editor, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true
+                });
+                
+                // Make the change
+                editor.focus();
+                editor.innerHTML = '';
+                editor.textContent = testText;
+                
+                // Trigger LinkedIn internal events
+                const events = [
+                    new Event('focus', { bubbles: true }),
+                    new Event('focusin', { bubbles: true }),
+                    new InputEvent('input', { bubbles: true, inputType: 'insertReplacementText', data: testText }),
+                    new Event('change', { bubbles: true }),
+                    new CustomEvent('linkedin-message-change', { bubbles: true, detail: { text: testText, source: 'extension' } })
+                ];
+                
+                events.forEach((event, index) => {
+                    setTimeout(() => editor.dispatchEvent(event), index * 10);
+                });
+                
+                // Stop observing
+                setTimeout(() => observer.disconnect(), 1000);
+                
+                showStatus(status, 'Mutation observer test completed!', 'success');
+            } catch (e) {
+                showStatus(status, 'Mutation observer test failed: ' + e.message, 'error');
+            }
+        }
+        
+        // Test Clipboard Integration
+        function testClipboardIntegration(container) {
+            const editor = container.querySelector('.msg-form__contenteditable');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Clipboard integration test: This should work like a paste operation.';
+            
+            try {
+                editor.focus();
+                
+                // Select all content
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // Create sophisticated clipboard event
+                const clipboardData = {
+                    getData: (type) => {
+                        if (type === 'text/plain') return testText;
+                        if (type === 'text/html') return `<p>${testText}</p>`;
+                        return '';
+                    },
+                    setData: () => {},
+                    clearData: () => {},
+                    types: ['text/plain', 'text/html']
+                };
+                
+                const pasteEvent = new ClipboardEvent('paste', {
+                    bubbles: true,
+                    cancelable: true,
+                    clipboardData: clipboardData
+                });
+                
+                Object.defineProperty(pasteEvent, 'clipboardData', {
+                    value: clipboardData,
+                    writable: false
+                });
+                
+                // Dispatch the event
+                const handled = editor.dispatchEvent(pasteEvent);
+                
+                // Fallback if not handled
+                if (!handled) {
+                    document.execCommand('insertText', false, testText);
+                }
+                
+                showStatus(status, 'Clipboard integration test completed!', 'success');
+            } catch (e) {
+                showStatus(status, 'Clipboard integration test failed: ' + e.message, 'error');
+            }
+        }
+        
+        // Test Keyboard Simulation
+        function testKeyboardSimulation(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Keyboard simulation test.';
+            
+            try {
+                editor.focus();
+                
+                // Clear existing content
+                document.execCommand('selectAll', false, null);
+                document.execCommand('delete', false, null);
+                
+                // Simulate typing character by character
+                const chars = Array.from(testText);
+                let index = 0;
+                
+                const typeNextChar = () => {
+                    if (index >= chars.length) {
+                        showStatus(status, 'Keyboard simulation test completed!', 'success');
+                        return;
+                    }
+                    
+                    const char = chars[index];
+                    
+                    // Create comprehensive keyboard events
+                    const keydownEvent = new KeyboardEvent('keydown', {
+                        key: char,
+                        code: `Key${char.toUpperCase()}`,
+                        keyCode: char.charCodeAt(0),
+                        which: char.charCodeAt(0),
+                        bubbles: true,
+                        cancelable: true,
+                        composed: true
+                    });
+                    
+                    const keypressEvent = new KeyboardEvent('keypress', {
+                        key: char,
+                        code: `Key${char.toUpperCase()}`,
+                        keyCode: char.charCodeAt(0),
+                        which: char.charCodeAt(0),
+                        bubbles: true,
+                        cancelable: true,
+                        composed: true
+                    });
+                    
+                    const keyupEvent = new KeyboardEvent('keyup', {
+                        key: char,
+                        code: `Key${char.toUpperCase()}`,
+                        keyCode: char.charCodeAt(0),
+                        which: char.charCodeAt(0),
+                        bubbles: true,
+                        cancelable: true,
+                        composed: true
+                    });
+                    
+                    // Dispatch events
+                    editor.dispatchEvent(keydownEvent);
+                    editor.dispatchEvent(keypressEvent);
+                    
+                    // Insert character
+                    document.execCommand('insertText', false, char);
+                    
+                    editor.dispatchEvent(keyupEvent);
+                    
+                    // Input event
+                    const inputEvent = new InputEvent('input', {
+                        bubbles: true,
+                        inputType: 'insertText',
+                        data: char,
+                        composed: true
+                    });
+                    editor.dispatchEvent(inputEvent);
+                    
+                    index++;
+                    setTimeout(typeNextChar, 50); // Slower for visibility
+                };
+                
+                typeNextChar();
+            } catch (e) {
+                showStatus(status, 'Keyboard simulation test failed: ' + e.message, 'error');
+            }
+        }
+        
+        // Test Focus/Selection
+        function testFocusSelection(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Focus/selection test: This should work with proper focus handling.';
+            
+            try {
+                editor.focus();
+                
+                // Create comprehensive selection
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // Create beforeinput event
+                const beforeInputEvent = new InputEvent('beforeinput', {
+                    bubbles: true,
+                    cancelable: true,
+                    inputType: 'insertReplacementText',
+                    data: testText,
+                    composed: true
+                });
+                
+                editor.dispatchEvent(beforeInputEvent);
+                
+                // Make the change if not prevented
+                if (!beforeInputEvent.defaultPrevented) {
+                    document.execCommand('insertText', false, testText);
+                    
+                    // Create afterinput event
+                    const afterInputEvent = new InputEvent('input', {
+                        bubbles: true,
+                        inputType: 'insertReplacementText',
+                        data: testText,
+                        composed: true
+                    });
+                    
+                    editor.dispatchEvent(afterInputEvent);
+                }
+                
+                showStatus(status, 'Focus/selection test completed!', 'success');
+            } catch (e) {
+                showStatus(status, 'Focus/selection test failed: ' + e.message, 'error');
+            }
+        }
+        
+        // Test Native Browser API
+        function testNativeBrowserAPI(container) {
+            const editor = container.querySelector('.ql-editor');
+            const status = container.querySelector('.status');
+            
+            const testText = 'Native browser API test: This uses multiple native approaches.';
+            
+            try {
+                // Multiple native approaches
+                const approaches = [
+                    () => {
+                        editor.textContent = testText;
+                        return true;
+                    },
+                    () => {
+                        editor.innerHTML = `<p>${testText}</p>`;
+                        return true;
+                    },
+                    () => {
+                        editor.focus();
+                        document.execCommand('selectAll', false, null);
+                        return document.execCommand('insertText', false, testText);
+                    },
+                    () => {
+                        const selection = window.getSelection();
+                        const range = document.createRange();
+                        range.selectNodeContents(editor);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        range.deleteContents();
+                        range.insertNode(document.createTextNode(testText));
+                        return true;
+                    }
+                ];
+                
+                let success = false;
+                for (const approach of approaches) {
+                    try {
+                        if (approach()) {
+                            success = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.log('Native approach failed:', e);
+                    }
+                }
+                
+                if (success) {
+                    showStatus(status, 'Native browser API test completed!', 'success');
+                } else {
+                    showStatus(status, 'Native browser API test failed!', 'error');
+                }
+            } catch (e) {
+                showStatus(status, 'Native browser API test failed: ' + e.message, 'error');
+            }
+        }
+        
+        function clearEditor(container) {
+            const editors = container.querySelectorAll('.ql-editor, .msg-form__contenteditable');
+            const status = container.querySelector('.status');
+            
+            editors.forEach(editor => {
+                editor.innerHTML = '<p><br></p>';
+                editor.focus();
+            });
+            
+            if (status) {
+                status.style.display = 'none';
+            }
+        }
+        
+        function showStatus(statusElement, message, type) {
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Add event listeners for keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && (e.key === 'x' || e.key === 'X')) {
+                e.preventDefault();
+                console.log('Alt+X detected - would trigger custom instructions');
+                alert('Alt+X detected! This would trigger the custom instructions dialog with the new LinkedIn approach.');
+            } else if (e.altKey && (e.key === 'q' || e.key === 'Q')) {
+                e.preventDefault();
+                console.log('Alt+Q detected - would trigger direct replacement');
+                alert('Alt+Q detected! This would trigger direct text replacement using the new LinkedIn methods.');
+            }
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('LinkedIn Text Replacement Test V2 loaded');
+            console.log('New approach uses 7 different methods to ensure LinkedIn compatibility');
+            console.log('Use Alt+X for custom instructions, Alt+Q for direct replacement');
+        });
+    </script>
+</body>
+</html>

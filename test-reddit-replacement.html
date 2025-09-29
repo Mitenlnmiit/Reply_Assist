@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Text Replacement Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #DAE0E6;
+        }
+        
+        .reddit-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1A1A1B;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-info {
+            background: #FFF4E6;
+            border: 1px solid #FFD700;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .test-info h2 {
+            margin-top: 0;
+            color: #FF8C00;
+            font-size: 16px;
+        }
+        
+        /* Reddit Draft.js editor styles */
+        .DraftEditor-editorContainer {
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 80px;
+            background: #F6F7F8;
+            margin-bottom: 15px;
+        }
+        
+        .DraftEditor-editorContainer:focus-within {
+            background: white;
+            border-color: #0079D3;
+        }
+        
+        .public-DraftEditor-content {
+            min-height: 60px;
+            outline: none;
+            color: #1A1A1B;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* Reddit Lexical editor styles */
+        [data-lexical-editor="true"] {
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #EDEFF1;
+            border-radius: 4px;
+            background: #F6F7F8;
+            outline: none;
+            color: #1A1A1B;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        [data-lexical-editor="true"]:focus {
+            background: white;
+            border-color: #0079D3;
+        }
+        
+        .test-buttons {
+            margin-top: 15px;
+        }
+        
+        .test-btn {
+            background: #0079D3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .test-btn:hover {
+            background: #005a9f;
+        }
+        
+        .test-btn.method1 {
+            background: #4caf50;
+        }
+        
+        .test-btn.method1:hover {
+            background: #388e3c;
+        }
+        
+        .test-btn.method2 {
+            background: #ff9800;
+        }
+        
+        .test-btn.method2:hover {
+            background: #f57c00;
+        }
+        
+        .debug-info {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        
+        .shortcut {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Reddit Text Replacement Fix Test</h1>
+    
+    <div class="test-info">
+        <h2>Reddit Editor Issues Fixed</h2>
+        <p>This test page specifically targets Reddit's Draft.js and Lexical editor replacement issues:</p>
+        <ul>
+            <li><strong>Issue:</strong> Text gets appended instead of replaced</li>
+            <li><strong>Root Cause:</strong> React state management in Draft.js/Lexical editors</li>
+            <li><strong>Solution:</strong> Specialized Reddit editor handling with proper React events</li>
+        </ul>
+        <p><strong>Test:</strong> Use <span class="shortcut">Alt+Q</span> or <span class="shortcut">Alt+X</span> with the extension, or test methods individually below.</p>
+    </div>
+    
+    <div class="reddit-container">
+        <h1>Reddit Draft.js Editor Test</h1>
+        <p>This simulates Reddit's Draft.js post/comment editor:</p>
+        
+        <div class="DraftEditor-editorContainer">
+            <div class="public-DraftEditor-content" 
+                 contenteditable="true" 
+                 role="textbox"
+                 spellcheck="true"
+                 id="draft-editor">hi thre this is a sample txt to undrstand if thr extnisno is wroking or not</div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn method1" onclick="testRedditReplacement('draft-editor')">Test Reddit-Specific Method</button>
+            <button class="test-btn method2" onclick="testStandardMethod('draft-editor')">Test Standard Method</button>
+            <button class="test-btn" onclick="resetEditor('draft-editor')">Reset Text</button>
+        </div>
+        
+        <div class="debug-info" id="debug-draft"></div>
+    </div>
+    
+    <div class="reddit-container">
+        <h1>Reddit Lexical Editor Test</h1>
+        <p>This simulates Reddit's newer Lexical editor:</p>
+        
+        <div contenteditable="true"
+             data-lexical-editor="true"
+             role="textbox"
+             spellcheck="true"
+             id="lexical-editor">This is anohter test wiht some typos to see if the refinemnt works proprely on Lexical editors.</div>
+        
+        <div class="test-buttons">
+            <button class="test-btn method1" onclick="testRedditReplacement('lexical-editor')">Test Reddit-Specific Method</button>
+            <button class="test-btn method2" onclick="testStandardMethod('lexical-editor')">Test Standard Method</button>
+            <button class="test-btn" onclick="resetEditor('lexical-editor')">Reset Text</button>
+        </div>
+        
+        <div class="debug-info" id="debug-lexical"></div>
+    </div>
+    
+    <div class="reddit-container">
+        <h1>Mixed Content Draft.js Test</h1>
+        <p>Draft.js editor with mixed content (like real Reddit posts):</p>
+        
+        <div class="DraftEditor-editorContainer">
+            <div class="public-DraftEditor-content" 
+                 contenteditable="true" 
+                 role="textbox"
+                 spellcheck="true"
+                 id="mixed-editor"><div>hi thre this is a sample txt</div><div><br></div><div>to undrstand if thr extnisno is wroking or not</div></div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn method1" onclick="testRedditReplacement('mixed-editor')">Test Reddit-Specific Method</button>
+            <button class="test-btn method2" onclick="testStandardMethod('mixed-editor')">Test Standard Method</button>
+            <button class="test-btn" onclick="resetEditor('mixed-editor')">Reset Text</button>
+        </div>
+        
+        <div class="debug-info" id="debug-mixed"></div>
+    </div>
+    
+    <script>
+        const originalTexts = {
+            'draft-editor': 'hi thre this is a sample txt to undrstand if thr extnisno is wroking or not',
+            'lexical-editor': 'This is anohter test wiht some typos to see if the refinemnt works proprely on Lexical editors.',
+            'mixed-editor': '<div>hi thre this is a sample txt</div><div><br></div><div>to undrstand if thr extnisno is wroking or not</div>'
+        };
+        
+        const replacementText = "Hi there, this is a sample text to understand if the extension is working or not.";
+        
+        // Helper to get text content
+        function getTextContent(element) {
+            return element.innerText || element.textContent || '';
+        }
+        
+        // Test the Reddit-specific replacement method
+        async function testRedditReplacement(editorId) {
+            const element = document.getElementById(editorId);
+            const debugDiv = document.getElementById('debug-' + editorId.split('-')[0]);
+            
+            let debugLog = 'REDDIT-SPECIFIC REPLACEMENT TEST:\n';
+            
+            try {
+                const originalText = getTextContent(element);
+                debugLog += `Original text: "${originalText}" (${originalText.length} chars)\n`;
+                
+                element.focus();
+                
+                // Method 1: Simple DOM replacement (most reliable)
+                debugLog += '\n--- Method 1: Direct DOM Replacement ---\n';
+                
+                // Complete DOM clearing
+                element.innerHTML = '';
+                element.textContent = '';
+                
+                // Force reflow
+                element.offsetHeight;
+                
+                // Set new content
+                element.textContent = replacementText;
+                
+                let currentText = getTextContent(element);
+                if (!currentText || currentText !== replacementText) {
+                    element.innerHTML = replacementText.replace(/\n/g, '<br>');
+                    currentText = getTextContent(element);
+                }
+                
+                debugLog += `Content set via DOM: "${currentText}"\n`;
+                
+                // Trigger minimal essential React events (avoid duplications)
+                const essentialEvents = [
+                    new InputEvent('input', { 
+                        bubbles: true,
+                        inputType: 'insertReplacementText',
+                        data: replacementText
+                    }),
+                    new Event('change', { bubbles: true })
+                ];
+                
+                debugLog += `Dispatching ${essentialEvents.length} essential events...\n`;
+                
+                essentialEvents.forEach((event, index) => {
+                    setTimeout(() => {
+                        element.dispatchEvent(event);
+                    }, index * 20);
+                });
+                
+                // Final verification
+                await new Promise(resolve => setTimeout(resolve, 50));
+                const finalText = getTextContent(element);
+                
+                if (finalText.trim() === replacementText.trim()) {
+                    debugLog += '✓ SUCCESS: Simplified DOM method worked!\n';
+                    debugDiv.innerHTML = `<span class="success">${debugLog}</span>`;
+                } else {
+                    debugLog += `✗ Method 1 failed. Trying fallback...\n`;
+                    
+                    // Method 2: Selection-based fallback
+                    debugLog += '\n--- Method 2: Selection-based Fallback ---\n';
+                    
+                    try {
+                        element.innerHTML = '';
+                        element.textContent = '';
+                        element.focus();
+                        
+                        document.execCommand('selectAll', false, null);
+                        const insertSuccess = document.execCommand('insertText', false, replacementText);
+                        
+                        if (insertSuccess) {
+                            element.dispatchEvent(new InputEvent('input', { 
+                                bubbles: true,
+                                inputType: 'insertText',
+                                data: replacementText
+                            }));
+                            
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                            const verifyText = getTextContent(element);
+                            
+                            if (verifyText.trim() === replacementText.trim()) {
+                                debugLog += '✓ SUCCESS: Selection method worked!\n';
+                                debugDiv.innerHTML = `<span class="success">${debugLog}</span>`;
+                            } else {
+                                debugLog += `✗ FAILURE: Final text: "${verifyText}"\n`;
+                                debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+                            }
+                        } else {
+                            debugLog += '✗ execCommand insertText failed\n';
+                            debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+                        }
+                    } catch (e) {
+                        debugLog += `✗ Selection method error: ${e.message}\n`;
+                        debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+                    }
+                }
+                
+            } catch (error) {
+                debugLog += `ERROR: ${error.message}\n`;
+                debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+            }
+        }
+        
+        // Test standard method for comparison
+        async function testStandardMethod(editorId) {
+            const element = document.getElementById(editorId);
+            const debugDiv = document.getElementById('debug-' + editorId.split('-')[0]);
+            
+            let debugLog = 'STANDARD REPLACEMENT TEST:\n';
+            
+            try {
+                element.focus();
+                
+                const originalText = getTextContent(element);
+                debugLog += `Original text: "${originalText}"\n`;
+                
+                // Standard selectAll + insertText
+                document.execCommand('selectAll', false, null);
+                const selectedText = window.getSelection().toString();
+                debugLog += `Selected: "${selectedText}"\n`;
+                
+                const success = document.execCommand('insertText', false, replacementText);
+                debugLog += `insertText success: ${success}\n`;
+                
+                const finalText = getTextContent(element);
+                debugLog += `Final text: "${finalText}"\n`;
+                
+                if (finalText.trim() === replacementText.trim()) {
+                    debugLog += '✓ SUCCESS: Standard method worked\n';
+                    debugDiv.innerHTML = `<span class="success">${debugLog}</span>`;
+                } else {
+                    debugLog += '✗ FAILURE: Text not replaced properly\n';
+                    debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+                }
+                
+            } catch (error) {
+                debugLog += `ERROR: ${error.message}\n`;
+                debugDiv.innerHTML = `<span class="error">${debugLog}</span>`;
+            }
+        }
+        
+        function resetEditor(editorId) {
+            const element = document.getElementById(editorId);
+            const debugDiv = document.getElementById('debug-' + editorId.split('-')[0]);
+            
+            element.innerHTML = originalTexts[editorId];
+            debugDiv.innerHTML = 'Editor reset to original text.';
+        }
+        
+        // Add focus logging
+        document.addEventListener('focus', (e) => {
+            if (e.target.contentEditable === 'true') {
+                console.log('[REDDIT TEST] Focused on:', e.target.id, e.target.className);
+            }
+        }, true);
+        
+        // Add input logging
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('[contenteditable="true"]')) {
+                console.log('[REDDIT TEST] Input event:', e.target.id, 'Length:', getTextContent(e.target).length);
+            }
+        }, true);
+        
+        console.log('Reddit Text Replacement Test loaded');
+        console.log('This page tests Reddit-specific Draft.js and Lexical editor fixes');
+    </script>
+</body>
+</html>
