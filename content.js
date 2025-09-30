@@ -3838,16 +3838,61 @@ class ChatRefinementExtension {
       input.select();
     }, 10);
 
+    // Keywords cycling state and behavior
+    const toneKeywords = [
+      'Professional',
+      'Casual',
+      'Funny',
+      'Polite',
+      'Concise',
+      'Persuasive',
+      'Empathetic',
+      'Confident',
+      'Neutral'
+    ];
+    let suggestActive = true; // active while the box is open
+    let currentIndex = 0;
+    const originalPlaceholder = input.getAttribute('placeholder') || '';
+    const allListPlaceholder = 'Tab: ' + toneKeywords.join(', ');
+    input.setAttribute('placeholder', allListPlaceholder);
+
     // Add keyboard event listener for the input
     input.addEventListener('keydown', (e) => {
+      if (e.isComposing) return;
+
+      // Cycle keywords with Tab/Shift+Tab and type into input
+      if (suggestActive && e.key === 'Tab') {
+        e.preventDefault();
+        // Show current keyword in the input
+        const keywordToInsert = toneKeywords[currentIndex];
+        input.value = keywordToInsert;
+        // Select inserted keyword so Enter submits or Tab replaces next
+        try {
+          input.setSelectionRange(0, input.value.length);
+        } catch (_) {}
+        // Prepare next index for subsequent Tab press
+        if (e.shiftKey) {
+          currentIndex = (currentIndex - 1 + toneKeywords.length) % toneKeywords.length;
+        } else {
+          currentIndex = (currentIndex + 1) % toneKeywords.length;
+        }
+        return;
+      }
+
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         console.log('[CUSTOM COMMANDS] Enter pressed, submitting');
         this.handleCustomInstructionSubmit();
-      } else if (e.key === 'Escape') {
+        return;
+      }
+
+      if (e.key === 'Escape') {
         e.preventDefault();
         console.log('[CUSTOM COMMANDS] Escape pressed, hiding box');
+        suggestActive = false;
+        input.setAttribute('placeholder', originalPlaceholder);
         this.hideCustomInstructionBox();
+        return;
       }
     });
     
