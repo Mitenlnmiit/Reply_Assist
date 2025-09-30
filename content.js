@@ -17,6 +17,47 @@ class ChatRefinementExtension {
     this.init();
   }
 
+  // Deep DOM utilities (pierce shadow roots)
+  deepActiveElement(root = document) {
+    let active = root.activeElement || root;
+    while (active && active.shadowRoot && active.shadowRoot.activeElement) {
+      active = active.shadowRoot.activeElement;
+    }
+    return active;
+  }
+
+  collectAllNodesDeep(nodes = [document]) {
+    const all = [];
+    for (const node of nodes) {
+      const root = node instanceof Document ? node : (node.shadowRoot || node);
+      if (!root) continue;
+      const childNodes = Array.from(root.querySelectorAll('*'));
+      all.push(...childNodes);
+      const shadowHosts = childNodes.filter(el => el.shadowRoot);
+      if (shadowHosts.length) all.push(...this.collectAllNodesDeep(shadowHosts));
+    }
+    return all;
+  }
+
+  querySelectorAllDeep(selector) {
+    const results = new Set();
+    // Try light DOM first
+    document.querySelectorAll(selector).forEach(el => results.add(el));
+    // Then traverse shadow roots
+    const nodes = this.collectAllNodesDeep();
+    for (const el of nodes) {
+      try {
+        if (el.matches && el.matches(selector)) results.add(el);
+      } catch (_) {}
+    }
+    return Array.from(results);
+  }
+
+  querySelectorDeep(selector) {
+    const all = this.querySelectorAllDeep(selector);
+    return all.length ? all[0] : null;
+  }
+
   // ---------- Debug helpers ----------
   debugEnabled() {
     return true; // toggle here if needed
@@ -313,7 +354,8 @@ class ChatRefinementExtension {
   }
 
   getActiveTextArea() {
-    const activeElement = document.activeElement;
+    // Use deep active element to handle shadow DOM (e.g., Reddit chat web components)
+    const activeElement = this.deepActiveElement();
     
     // Debug logging
     this.dbg('getActiveTextArea called');
@@ -342,12 +384,25 @@ class ChatRefinementExtension {
       // New Reddit selectors
       '[data-testid="post-title"]',
       'div[contenteditable="true"][spellcheck]',
-      'div[contenteditable="true"][data-lexical-editor="true"]'
+      'div[contenteditable="true"][data-lexical-editor="true"]',
+      // Reddit Chat (web components use shadow DOM)
+      // Broad chat composer heuristics
+      '[data-testid*="chat"] [role="textbox"]',
+      '[data-testid*="chat"] div[contenteditable="true"]',
+      '[data-testid*="message"] [role="textbox"]',
+      // Common rich editors inside chat
+      'div[role="textbox"][contenteditable="true"]',
+      'div[contenteditable="true"][aria-label*="message" i]'
     ];
 
-    // Try Reddit selectors first
+    // Try Reddit selectors first (shadow DOM-aware)
     for (const selector of redditSelectors) {
-      const element = document.querySelector(selector);
+      // Prefer closest to the deep active element if available
+      let element = null;
+      if (activeElement) {
+        element = activeElement.closest?.(selector) || null;
+      }
+      if (!element) element = this.querySelectorDeep(selector);
       if (element) {
         this.dbg('Found Reddit element with selector:', selector);
         if (this.isTextInput(element)) {
@@ -404,7 +459,7 @@ class ChatRefinementExtension {
     ];
 
     for (const selector of textInputSelectors) {
-      const element = document.querySelector(selector);
+      let element = this.querySelectorDeep(selector);
       if (element && this.isTextInput(element)) {
         this.dbg('Found element with generic selector:', selector);
         return element;
