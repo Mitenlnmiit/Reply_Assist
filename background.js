@@ -5,6 +5,7 @@ class ChatRefinementBackground {
     this.lastRequestTime = 0;
     this.rateLimitWindow = 60000; // 1 minute window
     this.maxRequestsPerMinute = 15; // Conservative limit
+    this.cachedSystemPrompt = null;
     this.init();
   }
 
@@ -19,6 +20,23 @@ class ChatRefinementBackground {
   }
 
   init() {
+    // Load cached system prompt and listen for changes
+    try {
+      chrome.storage.sync.get(['systemPrompt'], (result) => {
+        const val = result && typeof result.systemPrompt === 'string' ? result.systemPrompt : '';
+        this.cachedSystemPrompt = val && val.trim().length > 0 ? val : null;
+        this.dbg('Loaded systemPrompt from storage. Using cached?', !!this.cachedSystemPrompt);
+      });
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync' && changes.systemPrompt) {
+          const newVal = changes.systemPrompt.newValue;
+          this.cachedSystemPrompt = newVal && typeof newVal === 'string' && newVal.trim().length > 0 ? newVal : null;
+          this.dbg('systemPrompt updated. Using cached?', !!this.cachedSystemPrompt);
+        }
+      });
+    } catch (e) {
+      this.dbg('Failed to initialize systemPrompt cache:', e?.message || e);
+    }
     // Check if Chrome runtime is available
     if (typeof chrome === 'undefined' || !chrome.runtime) {
       console.error('Chrome runtime not available in background script');
@@ -173,11 +191,12 @@ class ChatRefinementBackground {
   }
 
   buildPrompt(draftText, conversationHistory, customInstruction = '') {
-    const systemPrompt = `<System Prompt>
+    const defaultSystemPrompt = `<System Prompt>
 You are a writing refinement assistant. 
 Your only task is to take user-written text and refine it so it becomes:
 - Preserving the original intent, meaning, and personal voice
 - Matching the tone of the surrounding conversation (given as context)
+- Make sure to use specific details from the context above to draft the reply.
 
 You must never add new ideas, facts, or content that wasn't in the user text.
 
@@ -189,6 +208,9 @@ You must never add new ideas, facts, or content that wasn't in the user text.
 </System Prompt>
 
 <User Input>`;
+    const systemPrompt = (this.cachedSystemPrompt && this.cachedSystemPrompt.trim().length > 0)
+      ? this.cachedSystemPrompt
+      : defaultSystemPrompt;
 
     let conversationText = '';
     if (conversationHistory && conversationHistory.length > 0) {

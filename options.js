@@ -25,14 +25,29 @@ class OptionsManager {
     document.getElementById('apiKey').addEventListener('input', () => {
       this.updateApiKeyStatus();
     });
+
+    // Reset system prompt to default
+    const resetBtn = document.getElementById('resetSystemPrompt');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => this.resetSystemPromptToDefault());
+    }
+
+    // Save only the system prompt
+    const savePromptBtn = document.getElementById('saveSystemPrompt');
+    if (savePromptBtn) {
+      savePromptBtn.addEventListener('click', () => this.saveSystemPromptOnly());
+    }
   }
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['geminiApiKey']);
+      const result = await chrome.storage.sync.get(['geminiApiKey', 'systemPrompt']);
       const apiKey = result.geminiApiKey || '';
+      const systemPrompt = typeof result.systemPrompt === 'string' ? result.systemPrompt : this.getDefaultSystemPrompt();
       
       document.getElementById('apiKey').value = apiKey;
+      const systemPromptEl = document.getElementById('systemPrompt');
+      if (systemPromptEl) systemPromptEl.value = systemPrompt;
       this.updateApiKeyStatus();
     } catch (error) {
       this.showAlert('Error loading settings: ' + error.message, 'error');
@@ -41,6 +56,8 @@ class OptionsManager {
 
   async saveSettings() {
     const apiKey = document.getElementById('apiKey').value.trim();
+    const systemPromptEl = document.getElementById('systemPrompt');
+    const systemPrompt = systemPromptEl ? systemPromptEl.value : '';
     
     if (!apiKey) {
       this.showAlert('Please enter your Gemini API key', 'warning');
@@ -48,12 +65,63 @@ class OptionsManager {
     }
 
     try {
-      await chrome.storage.sync.set({ geminiApiKey: apiKey });
+      const payload = { geminiApiKey: apiKey };
+      if (typeof systemPrompt === 'string' && systemPrompt.trim().length > 0) {
+        payload.systemPrompt = systemPrompt;
+      } else {
+        // If user clears it, store nothing; background will fall back to default
+        payload.systemPrompt = '';
+      }
+      await chrome.storage.sync.set(payload);
       this.showAlert('Settings saved successfully!', 'success');
       this.updateApiKeyStatus();
     } catch (error) {
       this.showAlert('Error saving settings: ' + error.message, 'error');
     }
+  }
+
+  async saveSystemPromptOnly() {
+    try {
+      const systemPromptEl = document.getElementById('systemPrompt');
+      const systemPrompt = systemPromptEl ? systemPromptEl.value : '';
+      const payload = {};
+      if (typeof systemPrompt === 'string' && systemPrompt.trim().length > 0) {
+        payload.systemPrompt = systemPrompt;
+      } else {
+        payload.systemPrompt = '';
+      }
+      await chrome.storage.sync.set(payload);
+      this.showAlert('System prompt saved successfully!', 'success');
+    } catch (error) {
+      this.showAlert('Error saving system prompt: ' + error.message, 'error');
+    }
+  }
+
+  resetSystemPromptToDefault() {
+    const systemPromptEl = document.getElementById('systemPrompt');
+    if (systemPromptEl) {
+      systemPromptEl.value = this.getDefaultSystemPrompt();
+      this.showAlert('System prompt reset to default. Click Save Settings to apply.', 'info');
+    }
+  }
+
+  getDefaultSystemPrompt() {
+    return `<System Prompt>
+You are a writing refinement assistant. 
+Your only task is to take user-written text and refine it so it becomes:
+- Preserving the original intent, meaning, and personal voice
+- Matching the tone of the surrounding conversation (given as context)
+
+You must never add new ideas, facts, or content that wasn't in the user text.
+
+<Rules>
+1. Preserve the intent and emotional nuance of the user text.
+2. Refer the message tone and context from given messages and include it in answer.
+3. Output only the refined text. Do not include explanations or notes.
+</Rules>
+</System Prompt>
+
+<User Input>`;
   }
 
   async testConnection() {

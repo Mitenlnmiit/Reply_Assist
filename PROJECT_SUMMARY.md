@@ -85,6 +85,7 @@ Reply_Assist/
 
 ### Options Page
 - API key configuration
+- System prompt editor (with reset to default)
 - Connection testing
 - Usage instructions
 - Troubleshooting guide
