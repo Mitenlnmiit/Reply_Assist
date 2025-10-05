@@ -1,12 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Reply Assist",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Refine your chat replies using AI with context awareness",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "https://*/*",
